@@ -1,5 +1,4 @@
 package id.silu.browser
-
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -11,6 +10,7 @@ import android.text.InputType
 import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.animation.OvershootInterpolator
 import android.view.animation.PathInterpolator
 import android.widget.EditText
@@ -56,6 +56,56 @@ fun View.pressable() {
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> v.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(OvershootInterpolator(1.8f)).start()
         }
         false
+    }
+}
+
+fun View.swipeDismiss(onDismiss: () -> Unit) {
+    val slop = ViewConfiguration.get(context).scaledTouchSlop
+    var downX = 0f
+    var downY = 0f
+    var dragging = false
+    setOnTouchListener { v, e ->
+        var consumed = false
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                downX = e.rawX; downY = e.rawY; dragging = false
+                v.animate().scaleX(.97f).scaleY(.97f).setDuration(110).setInterpolator(Motion.enter).start()
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val dx = e.rawX - downX
+                val dy = e.rawY - downY
+                if (!dragging && Math.abs(dx) > slop && Math.abs(dx) > Math.abs(dy) * 1.2f) {
+                    dragging = true
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                    v.isPressed = false
+                    v.cancelLongPress()
+                }
+                if (dragging) {
+                    v.translationX = dx
+                    v.rotation = dx / v.width.coerceAtLeast(1) * 6f
+                    v.alpha = (1f - Math.abs(dx) / (v.width.coerceAtLeast(1) * 1.1f)).coerceIn(.25f, 1f)
+                    consumed = true
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (dragging) {
+                    consumed = true
+                    val dx = v.translationX
+                    if (e.actionMasked == MotionEvent.ACTION_UP && Math.abs(dx) > v.width * .35f) {
+                        val dir = if (dx > 0) 1 else -1
+                        v.animate().translationX(dir * v.width * 1.3f).alpha(0f).setDuration(200).setInterpolator(Motion.exit)
+                            .withEndAction { onDismiss() }.start()
+                    } else {
+                        v.animate().translationX(0f).rotation(0f).alpha(1f).scaleX(1f).scaleY(1f)
+                            .setDuration(300).setInterpolator(Motion.enter).start()
+                    }
+                } else {
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(OvershootInterpolator(1.8f)).start()
+                }
+                dragging = false
+            }
+        }
+        consumed
     }
 }
 
