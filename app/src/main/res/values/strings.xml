@@ -1,1 +1,8 @@
-<resources><string name="app_name">SiLu Browser</string></resources>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SiLu Browser</string>
+    <string name="widget_label">SiLu Search</string>
+    <string name="widget_desc">Search or open a site in SiLu Browser</string>
+    <string name="widget_hint">Search or type URL</string>
+    <string name="widget_secret">New secret tab</string>
+</resources>
