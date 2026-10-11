@@ -13,7 +13,23 @@ android {
         versionCode = 261001
         versionName = "26.10.1"
     }
-    buildTypes { release { isMinifyEnabled = false } }
+    signingConfigs {
+        create("release") {
+            val path = System.getenv("KEYSTORE_PATH")
+            if (path != null) {
+                storeFile = file(path)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            if (System.getenv("KEYSTORE_PATH") != null) signingConfig = signingConfigs.getByName("release")
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
