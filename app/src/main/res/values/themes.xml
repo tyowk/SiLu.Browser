@@ -1,0 +1,73 @@
+<resources>
+    <style name="Theme.Silu" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorOnPrimary">@color/chrome</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text</item>
+        <item name="android:colorBackground">@color/chrome</item>
+        <item name="android:windowBackground">@color/chrome</item>
+        <item name="android:statusBarColor">@color/bar</item>
+        <item name="android:navigationBarColor">@color/bar</item>
+        <item name="android:textColorPrimary">@color/text</item>
+        <item name="android:textColorSecondary">@color/sub</item>
+        <item name="android:textColorHint">@color/sub</item>
+        <item name="colorControlNormal">@color/sub</item>
+        <item name="colorControlActivated">@color/accent</item>
+        <item name="colorControlHighlight">@color/divider</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Silu.Dialog</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.Silu.BottomSheet</item>
+    </style>
+
+    <style name="NavBtn">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:padding">16dp</item>
+        <item name="android:scaleType">centerInside</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+    </style>
+
+    <style name="ShapeAppearanceOverlay.Silu.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+    <style name="Silu.DialogAnim" parent="@android:style/Animation.Dialog">
+        <item name="android:windowEnterAnimation">@anim/dialog_in</item>
+        <item name="android:windowExitAnimation">@anim/dialog_out</item>
+    </style>
+    <style name="Silu.DialogButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/accent</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="cornerRadius">20dp</item>
+    </style>
+    <style name="ThemeOverlay.Silu.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.Silu.Dialog</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text</item>
+        <item name="android:windowAnimationStyle">@style/Silu.DialogAnim</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Silu.DialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Silu.DialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Silu.DialogButton</item>
+    </style>
+
+    <style name="ShapeAppearanceOverlay.Silu.Sheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">28dp</item>
+        <item name="cornerSizeTopRight">28dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+    <style name="Silu.BottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="backgroundTint">@color/surface</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearanceOverlay.Silu.Sheet</item>
+    </style>
+    <style name="ThemeOverlay.Silu.BottomSheet" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Silu.BottomSheet</item>
+    </style>
+
+    <style name="Silu.PopupAnim" parent="">
+        <item name="android:windowEnterAnimation">@anim/popup_in</item>
+        <item name="android:windowExitAnimation">@anim/popup_out</item>
+    </style>
+</resources>

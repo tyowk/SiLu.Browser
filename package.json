@@ -1,0 +1,11 @@
+{
+	"name": "silu",
+	"private": true,
+	"scripts": {
+		"format": "prettier -w *.kts ./app *.json"
+	},
+	"devDependencies": {
+		"prettier": "latest",
+		"prettier-plugin-kotlin": "^2.1.0"
+	}
+}

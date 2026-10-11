@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>SiLuyla</title>
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<style>
+			:root {
+				--bg: #0b0b0d;
+				--surface: #1e1f23;
+				--text: #ecedef;
+				--sub: #9b9ea6;
+				--line: rgba(255, 255, 255, 0.1);
+				--accent: #8ab4f8;
+			}
+			:root.teal {
+				--bg: #071315;
+				--surface: #122529;
+				--text: #e4f0ef;
+				--sub: #8ca8aa;
+				--accent: #5fcdc4;
+			}
+			* {
+				box-sizing: border-box;
+				-webkit-tap-highlight-color: transparent;
+			}
+			html,
+			body {
+				margin: 0;
+				min-height: 100%;
+			}
+			body {
+				min-height: 100vh;
+				min-height: 100svh;
+				background: var(--bg);
+				color: var(--text);
+				font-family: "Roboto", "SamsungOne", system-ui, sans-serif;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 0 20px max(28px, env(safe-area-inset-bottom));
+				overflow-x: hidden;
+				color-scheme: dark;
+			}
+			#wp,
+			#dim {
+				position: fixed;
+				inset: 0;
+				z-index: -2;
+				pointer-events: none;
+			}
+			#dim {
+				z-index: -1;
+				background: #000;
+			}
+			.teal-wp {
+				background-image: linear-gradient(160deg, #06171a, #0f3b40 55%, #1c6a6a);
+			}
+			.graphite {
+				background-image: linear-gradient(160deg, #0d0e10, #23252b 60%, #3a3d46);
+			}
+			.dusk {
+				background-image: linear-gradient(160deg, #14101f, #2c2347 55%, #51407a);
+			}
+			.ocean {
+				background-image: linear-gradient(160deg, #04121f, #0a3558 55%, #1a6a96);
+			}
+			.forest {
+				background-image: linear-gradient(160deg, #07140d, #14402a 55%, #2f7a52);
+			}
+			body.hasWp {
+				--text: #fff;
+				--sub: rgba(255, 255, 255, 0.78);
+				--surface: rgba(18, 18, 22, 0.55);
+				--line: rgba(255, 255, 255, 0.18);
+			}
+			body.hasWp .search,
+			body.hasWp .ic,
+			body.hasWp .card {
+				backdrop-filter: blur(16px);
+				-webkit-backdrop-filter: blur(16px);
+			}
+			main {
+				width: 100%;
+				max-width: 560px;
+				margin: auto 0;
+				padding: 7vh 0 4vh;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+			}
+			.rise {
+				opacity: 0;
+				transform: translateY(14px);
+				animation: rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+			}
+			@keyframes rise {
+				to {
+					opacity: 1;
+					transform: none;
+				}
+			}
+			h1 {
+				margin: 0;
+				font-size: clamp(48px, 16vw, 80px);
+				font-weight: 500;
+				letter-spacing: -0.045em;
+				line-height: 1;
+				animation-delay: 0.02s;
+			}
+			h1 span {
+				font-weight: 300;
+				color: var(--sub);
+			}
+			.clock {
+				margin-top: 18px;
+				font-size: 40px;
+				font-weight: 300;
+				font-variant-numeric: tabular-nums;
+				letter-spacing: -0.02em;
+				animation-delay: 0.1s;
+			}
+			.date {
+				margin-top: 4px;
+				font-size: 14px;
+				letter-spacing: 0.01em;
+				color: var(--sub);
+				animation-delay: 0.14s;
+			}
+			.search {
+				margin-top: 26px;
+				width: 100%;
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				height: 54px;
+				border-radius: 27px;
+				background: var(--surface);
+				border: 1px solid var(--line);
+				padding: 0 20px;
+				box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
+				transition:
+					box-shadow 0.2s,
+					border-color 0.2s;
+				animation-delay: 0.2s;
+			}
+			.search:focus-within {
+				border-color: var(--accent);
+				box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+			}
+			.search svg {
+				width: 20px;
+				height: 20px;
+				stroke: var(--sub);
+				fill: none;
+				stroke-width: 2;
+				stroke-linecap: round;
+				flex: none;
+			}
+			input {
+				flex: 1;
+				min-width: 0;
+				border: 0;
+				outline: 0;
+				background: none;
+				font: inherit;
+				font-size: 16px;
+				color: var(--text);
+			}
+			input::placeholder {
+				color: var(--sub);
+			}
+			.grid {
+				margin-top: 38px;
+				display: grid;
+				grid-template-columns: repeat(4, minmax(0, 1fr));
+				gap: 22px 4px;
+				width: 100%;
+				max-width: 440px;
+			}
+			.tile {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				gap: 8px;
+				color: var(--text);
+				text-decoration: none;
+				font-size: 12px;
+				min-width: 0;
+				opacity: 0;
+				animation: rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+				transition: transform 0.15s;
+			}
+			.tile:active {
+				transform: scale(0.92);
+			}
+			.ic {
+				width: 60px;
+				height: 60px;
+				border-radius: 20px;
+				flex: none;
+				background: var(--surface);
+				border: 1px solid var(--line);
+				display: grid;
+				place-items: center;
+				overflow: hidden;
+			}
+			.ic img {
+				width: 32px;
+				height: 32px;
+				border-radius: 8px;
+				object-fit: contain;
+			}
+			.ic b {
+				font-size: 24px;
+				font-weight: 500;
+				color: var(--c, var(--sub));
+			}
+			.tile span {
+				width: 100%;
+				text-align: center;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				color: var(--text);
+				opacity: 0.82;
+			}
+			.badge {
+				display: none;
+				margin-top: 10px;
+				padding: 6px 14px;
+				border-radius: 20px;
+				background: var(--surface);
+				border: 1px solid var(--line);
+				font-size: 13px;
+				color: var(--sub);
+				animation-delay: 0.08s;
+			}
+			.info {
+				display: none;
+				width: 100%;
+				margin-top: 30px;
+				gap: 12px;
+				flex-direction: column;
+			}
+			.card {
+				background: var(--surface);
+				border: 1px solid var(--line);
+				border-radius: 24px;
+				padding: 18px 20px;
+				animation-delay: 0.3s;
+			}
+			.card h3 {
+				margin: 0 0 10px;
+				font-size: 15px;
+				font-weight: 500;
+			}
+			.card ul {
+				margin: 0;
+				padding-left: 18px;
+				color: var(--sub);
+				font-size: 14px;
+				line-height: 1.6;
+			}
+			.lead {
+				margin-top: 18px;
+				max-width: 440px;
+				text-align: center;
+				color: var(--sub);
+				line-height: 1.55;
+				font-size: 15px;
+				animation-delay: 0.14s;
+			}
+			body.secret {
+				--bg: #121019;
+				--surface: #1d1a29;
+				--accent: #b6aee8;
+				--text: #ede9ff;
+				--sub: #b2abd6;
+			}
+			body.secret .badge,
+			body.secret .info {
+				display: flex;
+			}
+			body.secret .clock,
+			body.secret .date,
+			body.secret .grid {
+				display: none;
+			}
+			body.secret .lead {
+				display: block;
+			}
+			body:not(.secret) .lead {
+				display: none;
+			}
+			@media (prefers-reduced-motion: reduce) {
+				.rise,
+				.tile {
+					animation: none;
+					opacity: 1;
+					transform: none;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div id="wp"></div>
+		<div id="dim"></div>
+		<main>
+			<h1 class="rise">SiLu<span>yla</span></h1>
+			<div class="badge rise" id="badge">Secret mode</div>
+			<div class="clock rise" id="clock"></div>
+			<div class="date rise" id="date"></div>
+			<form id="f" style="width: 100%">
+				<label class="search rise"
+					><svg viewBox="0 0 24 24">
+						<circle cx="11" cy="11" r="7" />
+						<path d="M20 20l-3.5-3.5" /></svg
+					><input id="q" placeholder="Search or type web address" autocomplete="off" enterkeyhint="go"
+				/></label>
+			</form>
+			<p class="lead rise">You've gone secret. Pages you view in secret tabs won't appear in your history.</p>
+			<div class="info">
+				<div class="card rise">
+					<h3>SiLu won't save</h3>
+					<ul>
+						<li>Your browsing history</li>
+						<li>Cookies and site data</li>
+						<li>Info you enter in forms</li>
+					</ul>
+				</div>
+				<div class="card rise" style="animation-delay: 0.38s">
+					<h3>Your activity might still be visible to</h3>
+					<ul>
+						<li>Websites you visit</li>
+						<li>Your employer or school</li>
+						<li>Your internet service provider</li>
+					</ul>
+				</div>
+			</div>
+			<div class="grid" id="grid"></div>
+		</main>
+		<script>
+			var P = new URLSearchParams(location.search),
+				B = document.body,
+				R = document.documentElement;
+			if (P.get("th") === "teal") R.classList.add("teal");
+			var secret = P.get("secret") === "1";
+			if (secret) B.classList.add("secret");
+			var wp = P.get("wp") || "none",
+				v = P.get("v") || "0";
+			if (!secret && wp !== "none") {
+				var w = document.getElementById("wp");
+				if (wp === "image")
+					w.style.cssText = "background:url('/files/wp.jpg?v=" + v + "') center/cover no-repeat";
+				else w.className = wp === "teal" ? "teal-wp" : wp;
+				w.style.opacity = parseInt(P.get("wo") || "100", 10) / 100;
+				document.getElementById("dim").style.opacity = parseInt(P.get("wd") || "0", 10) / 100;
+				B.classList.add("hasWp");
+			}
+			function tick() {
+				var d = new Date();
+				document.getElementById("clock").textContent = d.toLocaleTimeString([], {
+					hour: "numeric",
+					minute: "2-digit",
+				});
+				document.getElementById("date").textContent = d.toLocaleDateString("en-US", {
+					weekday: "long",
+					month: "long",
+					day: "numeric",
+				});
+			}
+			tick();
+			setInterval(tick, 10000);
+			var E = P.get("e") || "https://www.google.com/search?q=%s";
+			var S = [];
+			try {
+				S = JSON.parse(P.get("s") || "[]");
+			} catch (e) {}
+			var g = document.getElementById("grid");
+			S.slice(0, 12).forEach(function (s, i) {
+				var a = document.createElement("a");
+				a.className = "tile";
+				a.href = s[1];
+				a.style.animationDelay = 0.28 + i * 0.04 + "s";
+				var ic = document.createElement("div");
+				ic.className = "ic";
+				var letter = function () {
+					ic.innerHTML = "";
+					var b = document.createElement("b");
+					var n = s[0] || "?",
+						k = 0;
+					for (var j = 0; j < n.length; j++) k = (k * 31 + n.charCodeAt(j)) % 360;
+					b.style.setProperty("--c", "hsl(" + k + ",70%,72%)");
+					b.textContent = n.charAt(0).toUpperCase();
+					ic.appendChild(b);
+				};
+				try {
+					var h = new URL(s[1]).origin;
+					var im = new Image();
+					im.onload = function () {
+						if (im.naturalWidth > 16) {
+							ic.innerHTML = "";
+							ic.appendChild(im);
+						} else letter();
+					};
+					im.onerror = letter;
+					im.src = h + "/favicon.ico";
+					letter();
+				} catch (e) {
+					letter();
+				}
+				var t = document.createElement("span");
+				t.textContent = s[0];
+				a.appendChild(ic);
+				a.appendChild(t);
+				g.appendChild(a);
+			});
+			document.getElementById("f").onsubmit = function (e) {
+				e.preventDefault();
+				var q = document.getElementById("q").value.trim();
+				if (!q) return;
+				location.href = /^[a-z][a-z0-9+.-]*:\/\//i.test(q)
+					? q
+					: /^[^\s]+\.[^\s]{2,}$/.test(q)
+						? "https://" + q
+						: E.replace("%s", encodeURIComponent(q));
+			};
+		</script>
+	</body>
+</html>

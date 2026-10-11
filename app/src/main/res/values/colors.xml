@@ -1,0 +1,12 @@
+<resources>
+    <color name="chrome">#071315</color>
+    <color name="bar">#0E1F22</color>
+    <color name="surface">#122529</color>
+    <color name="pill">#1B3438</color>
+    <color name="divider">#1FFFFFFF</color>
+    <color name="text">#E4F0EF</color>
+    <color name="sub">#8CA8AA</color>
+    <color name="accent">#5FCDC4</color>
+    <color name="secret">#B6AEE8</color>
+    <color name="secret_bg">#1E2536</color>
+</resources>

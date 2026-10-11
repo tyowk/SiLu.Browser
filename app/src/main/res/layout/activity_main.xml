@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/chrome" android:focusable="true" android:focusableInTouchMode="true">
+
+    <LinearLayout
+        android:layout_width="match_parent" android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <FrameLayout android:id="@+id/topSlot" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:elevation="4dp" />
+
+        <FrameLayout
+            android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipe" android:layout_width="match_parent" android:layout_height="match_parent">
+                <FrameLayout
+                    android:id="@+id/content" android:layout_width="match_parent"
+                    android:layout_height="match_parent" android:background="@color/surface" />
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+            <ProgressBar
+                android:id="@+id/progress" style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent" android:layout_height="2dp" android:layout_gravity="top"
+                android:minHeight="0dp" android:maxHeight="2dp" android:max="100"
+                android:progressTint="@color/accent" android:progressBackgroundTint="@android:color/transparent"
+                android:visibility="gone" />
+            <ScrollView
+                android:id="@+id/suggestScroll" android:layout_width="match_parent" android:layout_height="match_parent"
+                android:background="@color/chrome" android:fillViewport="true" android:overScrollMode="never"
+                android:visibility="gone">
+                <LinearLayout
+                    android:id="@+id/suggestList" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:orientation="vertical" android:padding="10dp" />
+            </ScrollView>
+        </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/findBar" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical" android:padding="8dp"
+            android:visibility="gone" android:background="@color/chrome">
+            <EditText
+                android:id="@+id/findInput" android:layout_width="0dp" android:layout_height="46dp"
+                android:layout_weight="1" android:background="@drawable/bg_pill" android:paddingStart="18dp"
+                android:paddingEnd="18dp" android:hint="Find in page" android:textColorHint="@color/sub"
+                android:textColor="@color/text" android:textSize="15sp" android:maxLines="1"
+                android:imeOptions="actionSearch" android:inputType="text" android:importantForAutofill="no" />
+            <TextView
+                android:id="@+id/findCount" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:minWidth="48dp" android:gravity="center" android:textColor="@color/sub" android:textSize="13sp" />
+            <ImageButton android:id="@+id/findUp" android:layout_width="44dp" android:layout_height="44dp"
+                android:padding="10dp" android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_up" android:contentDescription="Previous match" />
+            <ImageButton android:id="@+id/findDown" android:layout_width="44dp" android:layout_height="44dp"
+                android:padding="10dp" android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_down" android:contentDescription="Next match" />
+            <ImageButton android:id="@+id/findClose" android:layout_width="44dp" android:layout_height="44dp"
+                android:padding="10dp" android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_close" android:contentDescription="Close find" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/bottomBar" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="@drawable/bg_bar_bottom" android:elevation="4dp">
+            <FrameLayout android:id="@+id/bottomSlot" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:paddingTop="4dp" />
+            <LinearLayout
+                android:id="@+id/navBar" android:layout_width="match_parent" android:layout_height="56dp"
+                android:orientation="horizontal">
+                <ImageButton android:id="@+id/btnBack" style="@style/NavBtn" android:src="@drawable/ic_back" android:contentDescription="Back" />
+                <ImageButton android:id="@+id/btnFwd" style="@style/NavBtn" android:src="@drawable/ic_forward" android:contentDescription="Forward" />
+                <ImageButton android:id="@+id/btnHome" style="@style/NavBtn" android:src="@drawable/ic_home" android:contentDescription="Home" />
+                <FrameLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+                    <ImageButton android:id="@+id/btnTabs" style="@style/NavBtn" android:layout_width="match_parent"
+                        android:src="@drawable/ic_tabs" android:contentDescription="Tabs" />
+                    <TextView android:id="@+id/tabCount" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_gravity="center" android:text="1" android:textSize="11sp" android:textStyle="bold"
+                        android:textColor="@color/text" android:importantForAccessibility="no" />
+                </FrameLayout>
+                <ImageButton android:id="@+id/btnMenu" style="@style/NavBtn" android:src="@drawable/ic_menu" android:contentDescription="Menu" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/tabsOverlay" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:orientation="vertical" android:background="@color/chrome" android:clickable="true"
+        android:visibility="gone">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center_vertical" android:paddingStart="20dp" android:paddingEnd="16dp"
+            android:paddingTop="20dp" android:paddingBottom="12dp">
+            <TextView
+                android:id="@+id/tabsTitle" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:text="Tabs" android:textSize="26sp" android:textStyle="bold"
+                android:textColor="@color/text" />
+            <LinearLayout android:layout_width="wrap_content" android:layout_height="42dp"
+                android:background="@drawable/bg_pill" android:padding="4dp" android:orientation="horizontal">
+                <TextView android:id="@+id/segTabs" android:layout_width="84dp" android:layout_height="match_parent"
+                    android:gravity="center" android:text="Tabs" android:textSize="14sp" android:textColor="@color/text" />
+                <TextView android:id="@+id/segSecret" android:layout_width="84dp" android:layout_height="match_parent"
+                    android:gravity="center" android:text="Secret" android:textSize="14sp" android:textColor="@color/sub" />
+            </LinearLayout>
+        </LinearLayout>
+        <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            <LinearLayout android:id="@+id/tabsGrid" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:orientation="vertical" android:padding="8dp" />
+        </ScrollView>
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical" android:padding="12dp"
+            android:background="@drawable/bg_bar_bottom" android:elevation="4dp">
+            <Button android:id="@+id/btnCloseAll" style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1"
+                android:text="Close all" android:textAllCaps="false" android:textColor="@color/sub" />
+            <ImageButton android:id="@+id/btnNewTab" android:layout_width="56dp" android:layout_height="56dp"
+                android:background="@drawable/bg_circle_accent" android:src="@drawable/ic_plus"
+                android:tint="@color/chrome" android:padding="16dp" android:contentDescription="New tab" />
+            <Button android:id="@+id/btnTabsDone" style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1"
+                android:text="Done" android:textAllCaps="false" android:textColor="@color/accent" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/pageOverlay" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:orientation="vertical" android:background="@color/chrome" android:clickable="true"
+        android:visibility="gone">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center_vertical" android:padding="8dp">
+            <ImageButton android:id="@+id/pageBack" android:layout_width="48dp" android:layout_height="48dp"
+                android:padding="12dp" android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_back" android:contentDescription="Back" />
+            <TextView android:id="@+id/pageTitle" android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:paddingStart="8dp" android:textSize="24sp" android:textStyle="bold"
+                android:textColor="@color/text" />
+        </LinearLayout>
+        <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            <LinearLayout android:id="@+id/pageList" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp" />
+        </ScrollView>
+    </LinearLayout>
+
+    <FrameLayout android:id="@+id/fullscreen" android:layout_width="match_parent"
+        android:layout_height="match_parent" android:background="#000000" android:visibility="gone" />
+</FrameLayout>

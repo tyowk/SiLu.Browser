@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/addrRow" android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:paddingStart="10dp" android:paddingEnd="10dp" android:paddingTop="8dp" android:paddingBottom="8dp"
+    android:gravity="center_vertical">
+    <LinearLayout
+        android:id="@+id/pill" android:layout_width="match_parent" android:layout_height="46dp"
+        android:background="@drawable/bg_pill" android:gravity="center_vertical"
+        android:paddingStart="16dp" android:paddingEnd="4dp" android:clickable="true">
+        <ImageView
+            android:id="@+id/secretIcon" android:layout_width="18dp" android:layout_height="18dp"
+            android:layout_marginEnd="8dp" android:src="@drawable/ic_incognito"
+            android:visibility="gone" android:importantForAccessibility="no" />
+        <ImageView
+            android:id="@+id/lock" android:layout_width="16dp" android:layout_height="16dp"
+            android:layout_marginEnd="8dp" android:src="@drawable/ic_lock"
+            android:visibility="gone" android:importantForAccessibility="no" />
+        <EditText
+            android:id="@+id/url" android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="1" android:background="@null" android:padding="0dp"
+            android:hint="Search or type web address" android:textColorHint="@color/sub"
+            android:textColor="@color/text" android:textSize="15sp" android:maxLines="1"
+            android:imeOptions="actionGo|flagNoPersonalizedLearning" android:inputType="textUri"
+            android:importantForAutofill="no" android:contentDescription="Address bar" />
+        <ImageButton
+            android:id="@+id/action" android:layout_width="44dp" android:layout_height="44dp"
+            android:padding="11dp" android:scaleType="centerInside"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_refresh" android:contentDescription="Reload" />
+    </LinearLayout>
+</LinearLayout>

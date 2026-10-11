@@ -1,0 +1,13 @@
+<resources>
+    <!-- Theme "Dark" (neutral) -->
+    <color name="chrome">#0B0B0D</color>
+    <color name="bar">#17181B</color>
+    <color name="surface">#1E1F23</color>
+    <color name="pill">#292B31</color>
+    <color name="divider">#1FFFFFFF</color>
+    <color name="text">#ECEDEF</color>
+    <color name="sub">#9B9EA6</color>
+    <color name="accent">#8AB4F8</color>
+    <color name="secret">#B6AEE8</color>
+    <color name="secret_bg">#262238</color>
+</resources>
