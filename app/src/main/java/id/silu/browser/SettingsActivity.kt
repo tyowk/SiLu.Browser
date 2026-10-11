@@ -683,6 +683,7 @@ class SettingsActivity : AppCompatActivity() {
         val wv = WebView.getCurrentWebViewPackage()?.versionName ?: "unknown"
         section(null,
             rowView("SiLu Browser", "Version $ver"),
+            rowView("Developer", "SiLuyla Development"),
             rowView("Web engine", "Chromium (Android System WebView $wv)"),
             actionRow("Passkeys", "Not supported") {
                 MaterialAlertDialogBuilder(this).setTitle("Passkeys not supported")
