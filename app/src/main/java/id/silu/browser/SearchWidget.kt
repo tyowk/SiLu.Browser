@@ -1,5 +1,4 @@
 package id.silu.browser
-
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -18,10 +17,6 @@ class SearchWidget : AppWidgetProvider() {
         }
     }
 
-    private fun launch(c: Context, action: String, code: Int): PendingIntent =
-        PendingIntent.getActivity(
-            c, code,
-            Intent(c, MainActivity::class.java).setAction(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+    private fun launch(c: Context, action: String, code: Int): PendingIntent = PendingIntent.getActivity(c, code, Intent(c, MainActivity::class.java).setAction(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 }
+

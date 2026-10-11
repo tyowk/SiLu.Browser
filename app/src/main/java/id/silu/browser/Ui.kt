@@ -66,9 +66,11 @@ fun View.swipeDismiss(onDismiss: () -> Unit) {
     var dragging = false
     setOnTouchListener { v, e ->
         var consumed = false
-        when (e.actionMasked) {
+        when(e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                downX = e.rawX; downY = e.rawY; dragging = false
+                downX = e.rawX
+                downY = e.rawY
+                dragging = false
                 v.animate().scaleX(.97f).scaleY(.97f).setDuration(110).setInterpolator(Motion.enter).start()
             }
             MotionEvent.ACTION_MOVE -> {
@@ -93,11 +95,11 @@ fun View.swipeDismiss(onDismiss: () -> Unit) {
                     val dx = v.translationX
                     if (e.actionMasked == MotionEvent.ACTION_UP && Math.abs(dx) > v.width * .35f) {
                         val dir = if (dx > 0) 1 else -1
-                        v.animate().translationX(dir * v.width * 1.3f).alpha(0f).setDuration(200).setInterpolator(Motion.exit)
-                            .withEndAction { onDismiss() }.start()
+                        v.animate().translationX(dir * v.width * 1.3f).alpha(0f).setDuration(200).setInterpolator(Motion.exit).withEndAction {
+                            onDismiss()
+                        }.start()
                     } else {
-                        v.animate().translationX(0f).rotation(0f).alpha(1f).scaleX(1f).scaleY(1f)
-                            .setDuration(300).setInterpolator(Motion.enter).start()
+                        v.animate().translationX(0f).rotation(0f).alpha(1f).scaleX(1f).scaleY(1f).setDuration(300).setInterpolator(Motion.enter).start()
                     }
                 } else {
                     v.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(OvershootInterpolator(1.8f)).start()
@@ -136,17 +138,29 @@ fun Context.shortcutDialog(old: Entry?, onSave: (String, String) -> Unit) {
     }.setNegativeButton("Cancel", null).show()
 }
 
-class SegPillDrawable(private val base: Drawable?, private val pad: Float) : Drawable() {
+class SegPillDrawable(private  val base: Drawable?, private  val pad: Float) : Drawable() {
     private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
     private val rect = android.graphics.RectF()
     var pos = 0f
-        set(v) { field = v; invalidateSelf() }
+        set(v) {
+            field = v
+            invalidateSelf()
+        }
+
     var color = 0
-        set(v) { field = v; paint.color = v; invalidateSelf() }
+        set(v) {
+            field = v
+            paint.color = v
+            invalidateSelf()
+        }
+
 
     override fun draw(canvas: android.graphics.Canvas) {
         val b = bounds
-        base?.let { it.setBounds(b.left, b.top, b.right, b.bottom); it.draw(canvas) }
+        base?.let {
+            it.setBounds(b.left, b.top, b.right, b.bottom)
+            it.draw(canvas)
+        }
         val segW = (b.width() - 2 * pad) / 2f
         val h = b.height() - 2 * pad
         val left = b.left + pad + pos * segW
@@ -154,8 +168,13 @@ class SegPillDrawable(private val base: Drawable?, private val pad: Float) : Dra
         canvas.drawRoundRect(rect, h / 2f, h / 2f, paint)
     }
 
-    override fun setAlpha(alpha: Int) { paint.alpha = alpha }
-    override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) { paint.colorFilter = colorFilter }
+    override fun setAlpha(alpha: Int) {
+        paint.alpha = alpha
+    }
+    override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
+        paint.colorFilter = colorFilter
+    }
     @Suppress("DEPRECATION")
     override fun getOpacity(): Int = android.graphics.PixelFormat.TRANSLUCENT
 }
+

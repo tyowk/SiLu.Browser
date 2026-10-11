@@ -1,5 +1,4 @@
 package id.silu.browser
-
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -33,9 +32,9 @@ import org.json.JSONObject
 private const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
 private const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
 
-class DevTools(private val a: MainActivity, private val t: MainActivity.Tab, private val start: Int = 0) {
+class DevTools(private  val a: MainActivity, private  val t: MainActivity.Tab, private  val start: Int = 0) {
 
-    companion object {
+    companion object  {
         const val INSPECT_JS = """(function(){
 if(window.__si)return;
 var si=window.__si={sel:null,box:null,lab:null,picking:false};
@@ -125,10 +124,13 @@ si.info=function(){
             }
         }
         val head = LinearLayout(a).apply {
-            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(20), dp(14), dp(8), dp(4))
         }
-        val titles = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL }
+        val titles = LinearLayout(a).apply {
+            orientation = LinearLayout.VERTICAL
+        }
         titles.addView(tv("Developer tools", 18f, col(R.color.text), bold = true))
         titles.addView(tv(hostOf(t.url), 12f, col(R.color.sub)))
         head.addView(titles, LinearLayout.LayoutParams(0, WRAP, 1f))
@@ -136,12 +138,20 @@ si.info=function(){
             setImageResource(R.drawable.ic_close)
             background = a.rippleRounded(Color.TRANSPARENT, 22)
             contentDescription = "Close"
-            setOnClickListener { dialog.dismiss() }
+            setOnClickListener {
+                dialog.dismiss()
+            }
         }, LinearLayout.LayoutParams(dp(44), dp(44)))
         root.addView(head)
 
-        tabRow = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(14), dp(6), dp(14), dp(6)) }
-        root.addView(HorizontalScrollView(a).apply { isHorizontalScrollBarEnabled = false; addView(tabRow) })
+        tabRow = LinearLayout(a).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(14), dp(6), dp(14), dp(6))
+        }
+        root.addView(HorizontalScrollView(a).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(tabRow)
+        })
         area = FrameLayout(a)
         root.addView(area, LinearLayout.LayoutParams(MATCH, 0, 1f))
 
@@ -151,7 +161,9 @@ si.info=function(){
         dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
         dialog.behavior.skipCollapsed = true
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-        dialog.setOnDismissListener { t.web?.evaluateJavascript("window.__si&&__si.clear()", null) }
+        dialog.setOnDismissListener {
+            t.web?.evaluateJavascript("window.__si&&__si.clear()", null)
+        }
         select(start)
         dialog.show()
     }
@@ -160,10 +172,14 @@ si.info=function(){
         page = i
         tabRow.removeAllViews()
         names.forEachIndexed { idx, n ->
-            tabRow.addView(chip(n, idx == i) { select(idx) }, LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(8) })
+            tabRow.addView(chip(n, idx == i) {
+                select(idx)
+            }, LinearLayout.LayoutParams(WRAP, WRAP).apply {
+                marginEnd = dp(8)
+            })
         }
         area.removeAllViews()
-        when (i) {
+        when(i) {
             0 -> console()
             1 -> elements()
             2 -> network()
@@ -174,21 +190,28 @@ si.info=function(){
     }
 
     private fun tv(text: String, size: Float, color: Int, bold: Boolean = false, mono: Boolean = false): TextView = TextView(a).apply {
-        this.text = text; textSize = size; setTextColor(color)
+        this.text = text
+        textSize = size
+        setTextColor(color)
         if (bold) typeface = Typeface.DEFAULT_BOLD
         if (mono) typeface = Typeface.MONOSPACE
     }
 
     private fun chip(label: String, selected: Boolean, onClick: () -> Unit): TextView = TextView(a).apply {
-        text = label; textSize = 13f
+        text = label
+        textSize = 13f
         setTextColor(if (selected) col(R.color.accent) else col(R.color.sub))
         typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         setPadding(dp(16), dp(8), dp(16), dp(8))
         background = a.rounded(if (selected) withAlpha(col(R.color.accent), 40) else col(R.color.pill), 20)
-        setOnClickListener { onClick() }
+        setOnClickListener {
+            onClick()
+        }
     }
 
-    private fun hairline(): View = View(a).apply { setBackgroundColor(col(R.color.divider)) }
+    private fun hairline(): View = View(a).apply {
+        setBackgroundColor(col(R.color.divider))
+    }
 
     private fun copy(text: String) {
         (a.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("SiLu", text))
@@ -196,17 +219,25 @@ si.info=function(){
     }
 
     private fun note(text: String): TextView = tv(text, 14f, col(R.color.sub)).apply {
-        gravity = Gravity.CENTER; setPadding(dp(32), dp(48), dp(32), 0)
+        gravity = Gravity.CENTER
+        setPadding(dp(32), dp(48), dp(32), 0)
     }
 
     private fun decode(r: String?): String = try {
         JSONArray("[" + (r ?: "null") + "]").opt(0)?.toString() ?: ""
-    } catch (e: Exception) { r ?: "" }
+    } catch (e: Exception) {
+        r ?: ""
+    }
 
     private fun js(code: String, cb: (String) -> Unit) {
         val w = t.web
-        if (w == null) { cb(""); return }
-        w.evaluateJavascript(code) { r -> if (dialog.isShowing) cb(decode(r)) }
+        if (w == null) {
+            cb("")
+            return
+        }
+        w.evaluateJavascript(code) { r ->
+            if (dialog.isShowing) cb(decode(r))
+        }
     }
 
     private fun size(b: Long): String = when {
@@ -220,33 +251,53 @@ si.info=function(){
         orientation = LinearLayout.VERTICAL
         setPadding(dp(4), dp(10), dp(4), dp(10))
         addView(tv(label, 11f, col(R.color.sub)))
-        addView(tv(value, 13f, col(R.color.text), mono = true).apply { setPadding(0, dp(2), 0, 0) })
-        setOnClickListener { copy(value) }
+        addView(tv(value, 13f, col(R.color.text), mono = true).apply {
+            setPadding(0, dp(2), 0, 0)
+        })
+        setOnClickListener {
+            copy(value)
+        }
     }
 
     private fun section(title: String): TextView = tv(title.uppercase(), 11f, col(R.color.sub), bold = true).apply {
-        letterSpacing = .06f; setPadding(dp(4), dp(18), dp(4), dp(4))
+        letterSpacing = .06f
+        setPadding(dp(4), dp(18), dp(4), dp(4))
     }
 
     private fun actionButton(label: String, accent: Boolean = false, onClick: () -> Unit): TextView = TextView(a).apply {
-        text = label; textSize = 13f; gravity = Gravity.CENTER
+        text = label
+        textSize = 13f
+        gravity = Gravity.CENTER
         setTextColor(if (accent) col(R.color.chrome) else col(R.color.accent))
         typeface = Typeface.DEFAULT_BOLD
         setPadding(dp(16), dp(10), dp(16), dp(10))
         background = a.rounded(if (accent) col(R.color.accent) else withAlpha(col(R.color.accent), 36), 20)
-        setOnClickListener { onClick() }
+        setOnClickListener {
+            onClick()
+        }
     }
 
     private fun console() {
-        val box = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL }
-        val filters = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(14), dp(2), dp(14), dp(6)) }
-        val list = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(14), dp(4), dp(14), dp(8)) }
-        val scroll = ScrollView(a).apply { addView(list) }
+        val box = LinearLayout(a).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        val filters = LinearLayout(a).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), dp(2), dp(14), dp(6))
+        }
+        val list = LinearLayout(a).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(4), dp(14), dp(8))
+        }
+        val scroll = ScrollView(a).apply {
+            addView(list)
+        }
 
         fun fill() {
             list.removeAllViews()
             val items = t.console.filter {
-                when (conFilter) {
+                when(conFilter) {
                     "ERROR" -> it.level == "ERROR"
                     "WARNING" -> it.level == "WARNING"
                     "LOG" -> it.level != "ERROR" && it.level != "WARNING"
@@ -258,14 +309,14 @@ si.info=function(){
                 return
             }
             for (e in items) {
-                val color = when (e.level) {
+                val color = when(e.level) {
                     "ERROR" -> Color.parseColor("#FF7B72")
                     "WARNING" -> Color.parseColor("#F2C14E")
                     "IN" -> col(R.color.accent)
                     "OUT" -> col(R.color.text)
                     else -> col(R.color.text)
                 }
-                val bg = when (e.level) {
+                val bg = when(e.level) {
                     "ERROR" -> withAlpha(Color.parseColor("#FF7B72"), 28)
                     "WARNING" -> withAlpha(Color.parseColor("#F2C14E"), 24)
                     else -> Color.TRANSPARENT
@@ -274,24 +325,44 @@ si.info=function(){
                     orientation = LinearLayout.VERTICAL
                     setPadding(dp(10), dp(8), dp(10), dp(8))
                     background = a.rounded(bg, 10)
-                    setOnClickListener { copy(e.msg) }
+                    setOnClickListener {
+                        copy(e.msg)
+                    }
                 }
-                val prefix = when (e.level) { "IN" -> "› "; "OUT" -> "‹ "; else -> "" }
+                val prefix = when(e.level) {
+                    "IN" -> "› "
+                    "OUT" -> "‹ "
+                    else -> ""
+                }
                 row.addView(tv(prefix + e.msg, 12f, color, mono = true))
-                if (e.src.isNotEmpty()) row.addView(tv(e.src, 10f, col(R.color.sub)).apply { setPadding(0, dp(2), 0, 0) })
-                list.addView(row, LinearLayout.LayoutParams(MATCH, WRAP).apply { bottomMargin = dp(2) })
+                if (e.src.isNotEmpty()) row.addView(tv(e.src, 10f, col(R.color.sub)).apply {
+                    setPadding(0, dp(2), 0, 0)
+                })
+                list.addView(row, LinearLayout.LayoutParams(MATCH, WRAP).apply {
+                    bottomMargin = dp(2)
+                })
             }
-            scroll.post { scroll.fullScroll(View.FOCUS_DOWN) }
+            scroll.post {
+                scroll.fullScroll(View.FOCUS_DOWN)
+            }
         }
 
         fun refreshFilters() {
             filters.removeAllViews()
             listOf("ALL" to "All", "ERROR" to "Errors", "WARNING" to "Warnings", "LOG" to "Logs").forEach { (k, label) ->
-                filters.addView(chip(label, conFilter == k) { conFilter = k; refreshFilters(); fill() },
-                    LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(8) })
+                filters.addView(chip(label, conFilter == k) {
+                    conFilter = k
+                    refreshFilters()
+                    fill()
+                }, LinearLayout.LayoutParams(WRAP, WRAP).apply {
+                    marginEnd = dp(8)
+                })
             }
             filters.addView(View(a), LinearLayout.LayoutParams(0, 1, 1f))
-            filters.addView(actionButton("Clear") { t.console.clear(); fill() })
+            filters.addView(actionButton("Clear") {
+                t.console.clear()
+                fill()
+            })
         }
         refreshFilters()
         box.addView(filters)
@@ -299,8 +370,10 @@ si.info=function(){
 
         val input = EditText(a).apply {
             hint = "Run JavaScript…"
-            typeface = Typeface.MONOSPACE; textSize = 13f
-            setTextColor(col(R.color.text)); setHintTextColor(col(R.color.sub))
+            typeface = Typeface.MONOSPACE
+            textSize = 13f
+            setTextColor(col(R.color.text))
+            setHintTextColor(col(R.color.sub))
             background = a.rounded(col(R.color.pill), 22)
             setPadding(dp(16), dp(10), dp(16), dp(10))
             maxLines = 4
@@ -312,14 +385,14 @@ si.info=function(){
             if (code.isEmpty()) return
             input.setText("")
             t.console.add(Entry("IN", code))
-            val wrapped = "(function(){try{var r=(0,eval)(" + JSONObject.quote(code) + ");" +
-                "if(r===undefined)return 'undefined';if(typeof r==='function')return String(r);" +
-                "if(typeof r==='object'&&r!==null){try{return JSON.stringify(r,null,2)}catch(e){return String(r)}}return String(r)}" +
-                "catch(e){return 'Error: '+(e&&e.message?e.message:e)}})()"
+            val wrapped = "(function(){try{var r=(0,eval)(" + JSONObject.quote(code) + ");" + "if(r===undefined)return 'undefined';if(typeof r==='function')return String(r);" + "if(typeof r==='object'&&r!==null){try{return JSON.stringify(r,null,2)}catch(e){return String(r)}}return String(r)}" + "catch(e){return 'Error: '+(e&&e.message?e.message:e)}})()"
             t.web?.evaluateJavascript(wrapped) { r ->
                 val s = decode(r)
                 if (s.contains("unsafe-eval")) {
-                    t.web?.evaluateJavascript(code) { r2 -> t.console.add(Entry("OUT", decode(r2))); if (dialog.isShowing) fill() }
+                    t.web?.evaluateJavascript(code) { r2 ->
+                        t.console.add(Entry("OUT", decode(r2)))
+                        if (dialog.isShowing) fill()
+                    }
                 } else {
                     t.console.add(Entry(if (s.startsWith("Error: ")) "ERROR" else "OUT", s))
                     if (dialog.isShowing) fill()
@@ -327,11 +400,16 @@ si.info=function(){
             }
             fill()
         }
-        val send = actionButton("Run", accent = true) { run() }
+        val send = actionButton("Run", accent = true) {
+            run()
+        }
         val bar = LinearLayout(a).apply {
-            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(12), dp(8), dp(12), dp(12))
-            addView(input, LinearLayout.LayoutParams(0, WRAP, 1f).apply { marginEnd = dp(8) })
+            addView(input, LinearLayout.LayoutParams(0, WRAP, 1f).apply {
+                marginEnd = dp(8)
+            })
             addView(send)
         }
         box.addView(hairline(), LinearLayout.LayoutParams(MATCH, 1))
@@ -348,8 +426,13 @@ si.info=function(){
     }
 
     private fun elements() {
-        val list = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(14), dp(6), dp(14), dp(28)) }
-        area.addView(ScrollView(a).apply { addView(list) }, FrameLayout.LayoutParams(MATCH, MATCH))
+        val list = LinearLayout(a).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(6), dp(14), dp(28))
+        }
+        area.addView(ScrollView(a).apply {
+            addView(list)
+        }, FrameLayout.LayoutParams(MATCH, MATCH))
         t.web?.evaluateJavascript(INSPECT_JS, null)
         loadElement(list)
     }
@@ -357,35 +440,57 @@ si.info=function(){
     private fun loadElement(list: LinearLayout) {
         js("(function(){return window.__si&&__si.sel?JSON.stringify(__si.info()):''})()") { r ->
             list.removeAllViews()
-            val o = try { if (r.isEmpty() || r == "null") null else JSONObject(r) } catch (e: Exception) { null }
+            val o = try {
+                if (r.isEmpty() || r == "null") null else JSONObject(r)
+            } catch (e: Exception) {
+                null
+            }
             if (o == null) emptyElement(list) else renderElement(list, o)
         }
     }
 
     private fun emptyElement(list: LinearLayout) {
         list.addView(note("Inspect any element on the page.\nTap Pick, then tap what you want to look at. Layout, styles and HTML show up here, and you can edit, hide or delete it."))
-        list.addView(actionButton("Pick element", accent = true) { pick() },
-            LinearLayout.LayoutParams(WRAP, WRAP).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = dp(24) })
+        list.addView(actionButton("Pick element", accent = true) {
+            pick()
+        }, LinearLayout.LayoutParams(WRAP, WRAP).apply {
+            gravity = Gravity.CENTER_HORIZONTAL
+            topMargin = dp(24)
+        })
     }
 
     private fun act(list: LinearLayout, code: String) {
-        t.web?.evaluateJavascript(code) { if (dialog.isShowing) loadElement(list) }
+        t.web?.evaluateJavascript(code) {
+            if (dialog.isShowing) loadElement(list)
+        }
     }
 
-    private fun ints(arr: JSONArray?): IntArray = IntArray(4) { arr?.optInt(it) ?: 0 }
+    private fun ints(arr: JSONArray?): IntArray = IntArray(4) {
+        arr?.optInt(it) ?: 0
+    }
 
-    private fun num(n: Int): TextView = tv(n.toString(), 11f, col(R.color.sub), mono = true).apply { gravity = Gravity.CENTER; minWidth = dp(18) }
+    private fun num(n: Int): TextView = tv(n.toString(), 11f, col(R.color.sub), mono = true).apply {
+        gravity = Gravity.CENTER
+        minWidth = dp(18)
+    }
 
     private fun layer(color: Int, v: IntArray, inner: View): View {
         val box = LinearLayout(a).apply {
-            orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
             setPadding(dp(6), dp(4), dp(6), dp(4))
             background = a.rounded(withAlpha(color, 44), 12, withAlpha(color, 130), 1)
         }
         box.addView(num(v[0]))
-        val mid = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val mid = LinearLayout(a).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
         mid.addView(num(v[3]))
-        mid.addView(inner, LinearLayout.LayoutParams(0, WRAP, 1f).apply { marginStart = dp(4); marginEnd = dp(4) })
+        mid.addView(inner, LinearLayout.LayoutParams(0, WRAP, 1f).apply {
+            marginStart = dp(4)
+            marginEnd = dp(4)
+        })
         mid.addView(num(v[1]))
         box.addView(mid, LinearLayout.LayoutParams(MATCH, WRAP))
         box.addView(num(v[2]))
@@ -393,55 +498,100 @@ si.info=function(){
     }
 
     private fun renderElement(list: LinearLayout, o: JSONObject) {
-        list.addView(tv(o.optString("label"), 17f, col(R.color.accent), bold = true, mono = true).apply { setPadding(dp(4), dp(4), dp(4), 0) })
+        list.addView(tv(o.optString("label"), 17f, col(R.color.accent), bold = true, mono = true).apply {
+            setPadding(dp(4), dp(4), dp(4), 0)
+        })
         list.addView(HorizontalScrollView(a).apply {
             isHorizontalScrollBarEnabled = false
-            addView(tv(o.optString("path"), 11f, col(R.color.sub), mono = true).apply { setPadding(dp(4), dp(4), dp(4), dp(6)) })
+            addView(tv(o.optString("path"), 11f, col(R.color.sub), mono = true).apply {
+                setPadding(dp(4), dp(4), dp(4), dp(6))
+            })
         })
         val text = o.optString("text")
-        if (text.isNotBlank()) list.addView(tv("“$text”", 12f, col(R.color.sub)).apply { setPadding(dp(4), 0, dp(4), dp(6)) })
+        if (text.isNotBlank()) list.addView(tv("“$text”", 12f, col(R.color.sub)).apply {
+            setPadding(dp(4), 0, dp(4), dp(6))
+        })
 
-        val nav = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(2), dp(4), dp(2), dp(4)) }
-        fun navBtn(label: String, code: String, accent: Boolean = false) =
-            nav.addView(actionButton(label, accent) { act(list, code) }, LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(8) })
-        nav.addView(actionButton("Pick", accent = true) { pick() }, LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(8) })
+        val nav = LinearLayout(a).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(2), dp(4), dp(2), dp(4))
+        }
+        fun navBtn(label: String, code: String, accent: Boolean = false) = nav.addView(actionButton(label, accent) {
+            act(list, code)
+        }, LinearLayout.LayoutParams(WRAP, WRAP).apply {
+            marginEnd = dp(8)
+        })
+        nav.addView(actionButton("Pick", accent = true) {
+            pick()
+        }, LinearLayout.LayoutParams(WRAP, WRAP).apply {
+            marginEnd = dp(8)
+        })
         navBtn("↑ Parent", "__si.up()")
         if (o.optInt("kids") > 0) navBtn("↓ Child", "__si.down()")
         navBtn("← Prev", "__si.sib(-1)")
         navBtn("Next →", "__si.sib(1)")
-        list.addView(HorizontalScrollView(a).apply { isHorizontalScrollBarEnabled = false; addView(nav) })
+        list.addView(HorizontalScrollView(a).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(nav)
+        })
 
         list.addView(section("Box model"))
         val bx = o.optJSONObject("box")
         if (bx != null) {
             val content = tv("${bx.optInt("w")} × ${bx.optInt("h")}", 13f, col(R.color.text), mono = true).apply {
-                gravity = Gravity.CENTER; setPadding(dp(8), dp(12), dp(8), dp(12))
+                gravity = Gravity.CENTER
+                setPadding(dp(8), dp(12), dp(8), dp(12))
                 background = a.rounded(withAlpha(Color.parseColor("#8AB4F8"), 80), 8)
             }
             var inner: View = content
             inner = layer(Color.parseColor("#7BC47F"), ints(bx.optJSONArray("p")), inner)
             inner = layer(Color.parseColor("#F2C14E"), ints(bx.optJSONArray("b")), inner)
             inner = layer(Color.parseColor("#F2994A"), ints(bx.optJSONArray("m")), inner)
-            list.addView(inner, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(4) })
-            list.addView(tv("margin  •  border  •  padding  •  content", 10f, col(R.color.sub)).apply { gravity = Gravity.CENTER; setPadding(0, dp(6), 0, 0) })
+            list.addView(inner, LinearLayout.LayoutParams(MATCH, WRAP).apply {
+                topMargin = dp(4)
+            })
+            list.addView(tv("margin  •  border  •  padding  •  content", 10f, col(R.color.sub)).apply {
+                gravity = Gravity.CENTER
+                setPadding(0, dp(6), 0, 0)
+            })
         }
 
         list.addView(section("Actions"))
-        val acts = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(2), dp(4), dp(2), dp(4)) }
-        fun actBtn(label: String, onClick: () -> Unit) =
-            acts.addView(actionButton(label) { onClick() }, LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(8) })
-        actBtn("Copy selector") { copy(o.optString("selector")) }
-        actBtn("Copy HTML") { copy(o.optString("html")) }
-        actBtn("Edit style") { editStyle(list, o.optString("inline")) }
-        actBtn(if (o.optBoolean("hidden")) "Show" else "Hide") { act(list, "__si.hide()") }
-        actBtn("Delete") { act(list, "__si.del()") }
-        list.addView(HorizontalScrollView(a).apply { isHorizontalScrollBarEnabled = false; addView(acts) })
+        val acts = LinearLayout(a).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(2), dp(4), dp(2), dp(4))
+        }
+        fun actBtn(label: String, onClick: () -> Unit) = acts.addView(actionButton(label) {
+            onClick()
+        }, LinearLayout.LayoutParams(WRAP, WRAP).apply {
+            marginEnd = dp(8)
+        })
+        actBtn("Copy selector") {
+            copy(o.optString("selector"))
+        }
+        actBtn("Copy HTML") {
+            copy(o.optString("html"))
+        }
+        actBtn("Edit style") {
+            editStyle(list, o.optString("inline"))
+        }
+        actBtn(if (o.optBoolean("hidden")) "Show" else "Hide") {
+            act(list, "__si.hide()")
+        }
+        actBtn("Delete") {
+            act(list, "__si.del()")
+        }
+        list.addView(HorizontalScrollView(a).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(acts)
+        })
         list.addView(kv("Selector", o.optString("selector")))
 
         val attrs = o.optJSONArray("attrs")
         list.addView(section("Attributes (${attrs?.length() ?: 0})"))
-        if (attrs == null || attrs.length() == 0) list.addView(tv("None", 13f, col(R.color.sub)).apply { setPadding(dp(4), dp(6), 0, 0) })
-        else for (i in 0 until attrs.length()) {
+        if (attrs == null || attrs.length() == 0) list.addView(tv("None", 13f, col(R.color.sub)).apply {
+            setPadding(dp(4), dp(6), 0, 0)
+        }) else for (i in 0 until attrs.length()) {
             val p = attrs.getJSONArray(i)
             list.addView(kv(p.getString(0), p.optString(1)))
         }
@@ -454,60 +604,101 @@ si.info=function(){
         }
 
         list.addView(section("HTML"))
-        val html = tv(o.optString("html"), 11f, col(R.color.text), mono = true).apply { setTextIsSelectable(true); setPadding(dp(4), dp(6), dp(4), dp(6)) }
-        list.addView(HorizontalScrollView(a).apply { addView(html) })
+        val html = tv(o.optString("html"), 11f, col(R.color.text), mono = true).apply {
+            setTextIsSelectable(true)
+            setPadding(dp(4), dp(6), dp(4), dp(6))
+        }
+        list.addView(HorizontalScrollView(a).apply {
+            addView(html)
+        })
     }
 
     private fun editStyle(list: LinearLayout, current: String) {
         val et = EditText(a).apply {
-            setText(current); hint = "color: red; font-size: 20px;"
-            typeface = Typeface.MONOSPACE; textSize = 13f; minLines = 5; gravity = Gravity.TOP or Gravity.START
+            setText(current)
+            hint = "color: red; font-size: 20px;"
+            typeface = Typeface.MONOSPACE
+            textSize = 13f
+            minLines = 5
+            gravity = Gravity.TOP or Gravity.START
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
         }
-        val box = FrameLayout(a).apply { setPadding(dp(20), dp(8), dp(20), 0); addView(et) }
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(a).setTitle("Inline style").setView(box)
-            .setPositiveButton("Apply") { _, _ -> act(list, "__si.css(" + JSONObject.quote(et.text.toString()) + ")") }
-            .setNegativeButton("Cancel", null).show()
+        val box = FrameLayout(a).apply {
+            setPadding(dp(20), dp(8), dp(20), 0)
+            addView(et)
+        }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(a).setTitle("Inline style").setView(box).setPositiveButton("Apply") { _, _ ->
+            act(list, "__si.css(" + JSONObject.quote(et.text.toString()) + ")")
+        }.setNegativeButton("Cancel", null).show()
     }
 
     private class Req(val url: String, val type: String, val ms: Int, val bytes: Long, val status: Int) {
-        val kind: String get() {
-            val ext = url.substringBefore('?').substringBefore('#').substringAfterLast('.', "").lowercase()
-            return when {
-                type == "document" -> "doc"
-                type == "xmlhttprequest" || type == "fetch" || type == "beacon" -> "xhr"
-                type == "script" || ext == "js" || ext == "mjs" -> "js"
-                type == "css" || ext == "css" -> "css"
-                type == "img" || type == "image" || ext in setOf("png", "jpg", "jpeg", "gif", "webp", "avif", "svg", "ico") -> "img"
-                else -> "other"
+        val kind: String
+            get() {
+                val ext = url.substringBefore('?').substringBefore('#').substringAfterLast('.', "").lowercase()
+                return when {
+                    type == "document" -> "doc"
+                    type == "xmlhttprequest" || type == "fetch" || type == "beacon" -> "xhr"
+                    type == "script" || ext == "js" || ext == "mjs" -> "js"
+                    type == "css" || ext == "css" -> "css"
+                    type == "img" || type == "image" || ext in setOf("png", "jpg", "jpeg", "gif", "webp", "avif", "svg", "ico") -> "img"
+                    else -> "other"
+                }
             }
-        }
+
     }
 
     private fun network() {
-        val box = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL }
-        val summary = tv("Loading…", 12f, col(R.color.sub)).apply { setPadding(dp(18), dp(6), dp(18), dp(4)) }
-        val filters = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(14), dp(2), dp(14), dp(6)) }
-        val list = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(14), dp(2), dp(14), dp(14)) }
+        val box = LinearLayout(a).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        val summary = tv("Loading…", 12f, col(R.color.sub)).apply {
+            setPadding(dp(18), dp(6), dp(18), dp(4))
+        }
+        val filters = LinearLayout(a).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(14), dp(2), dp(14), dp(6))
+        }
+        val list = LinearLayout(a).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(2), dp(14), dp(14))
+        }
         var all: List<Req> = emptyList()
 
         fun fill() {
             list.removeAllViews()
-            val items = all.filter { netFilter == "ALL" || it.kind == netFilter }
-            if (items.isEmpty()) { list.addView(note("No requests to show.")); return }
+            val items = all.filter {
+                netFilter == "ALL" || it.kind == netFilter
+            }
+            if (items.isEmpty()) {
+                list.addView(note("No requests to show."))
+                return
+            }
             for (r in items.take(300)) {
                 val row = LinearLayout(a).apply {
                     orientation = LinearLayout.VERTICAL
                     setPadding(dp(10), dp(9), dp(10), dp(9))
                     background = a.rippleRounded(Color.TRANSPARENT, 12)
-                    setOnClickListener { copy(r.url) }
+                    setOnClickListener {
+                        copy(r.url)
+                    }
                 }
                 val u = Uri.parse(r.url)
-                val name = (u.lastPathSegment ?: u.host ?: r.url).ifEmpty { u.host ?: r.url }
-                row.addView(tv(name, 13f, col(R.color.text), mono = true).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.MIDDLE })
+                val name = (u.lastPathSegment ?: u.host ?: r.url).ifEmpty {
+                    u.host ?: r.url
+                }
+                row.addView(tv(name, 13f, col(R.color.text), mono = true).apply {
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.MIDDLE
+                })
                 val st = if (r.status > 0) "${r.status}  •  " else ""
-                row.addView(tv("$st${r.type.ifEmpty { r.kind }}  •  ${size(r.bytes)}  •  ${r.ms} ms  •  ${u.host ?: ""}", 11f,
-                    if (r.status >= 400) Color.parseColor("#FF7B72") else col(R.color.sub)).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END; setPadding(0, dp(2), 0, 0) })
+                row.addView(tv("$st${r.type.ifEmpty {
+                    r.kind
+                }}  •  ${size(r.bytes)}  •  ${r.ms} ms  •  ${u.host ?: ""}", 11f, if (r.status >= 400) Color.parseColor("#FF7B72") else col(R.color.sub)).apply {
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
+                    setPadding(0, dp(2), 0, 0)
+                })
                 list.addView(row, LinearLayout.LayoutParams(MATCH, WRAP))
             }
             if (items.size > 300) list.addView(note("Showing the first 300 of ${items.size} requests."))
@@ -516,17 +707,19 @@ si.info=function(){
         fun refreshFilters() {
             filters.removeAllViews()
             listOf("ALL" to "All", "doc" to "Doc", "js" to "JS", "css" to "CSS", "img" to "Img", "xhr" to "XHR", "other" to "Other").forEach { (k, label) ->
-                filters.addView(chip(label, netFilter == k) { netFilter = k; refreshFilters(); fill() },
-                    LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(8) })
+                filters.addView(chip(label, netFilter == k) {
+                    netFilter = k
+                    refreshFilters()
+                    fill()
+                }, LinearLayout.LayoutParams(WRAP, WRAP).apply {
+                    marginEnd = dp(8)
+                })
             }
         }
 
         fun load() {
             summary.text = "Loading…"
-            js("(function(){var o=[];var n=performance.getEntriesByType('navigation')[0];" +
-                "if(n)o.push({n:location.href,t:'document',d:Math.round(n.duration),s:n.transferSize||0,st:n.responseStatus||0});" +
-                "performance.getEntriesByType('resource').forEach(function(e){o.push({n:e.name,t:e.initiatorType||'',d:Math.round(e.duration),s:e.transferSize||e.encodedBodySize||0,st:e.responseStatus||0})});" +
-                "return JSON.stringify(o)})()") { r ->
+            js("(function(){var o=[];var n=performance.getEntriesByType('navigation')[0];" + "if(n)o.push({n:location.href,t:'document',d:Math.round(n.duration),s:n.transferSize||0,st:n.responseStatus||0});" + "performance.getEntriesByType('resource').forEach(function(e){o.push({n:e.name,t:e.initiatorType||'',d:Math.round(e.duration),s:e.transferSize||e.encodedBodySize||0,st:e.responseStatus||0})});" + "return JSON.stringify(o)})()") { r ->
                 val out = ArrayList<Req>()
                 try {
                     val arr = JSONArray(r)
@@ -534,75 +727,135 @@ si.info=function(){
                         val o = arr.getJSONObject(i)
                         out.add(Req(o.getString("n"), o.optString("t"), o.optInt("d"), o.optLong("s"), o.optInt("st")))
                     }
-                } catch (e: Exception) { }
+                } catch (e: Exception) {}
                 all = out
-                val total = out.sumOf { it.bytes }
+                val total = out.sumOf {
+                    it.bytes
+                }
                 summary.text = "${out.size} requests  •  ${size(total)} transferred"
                 fill()
             }
         }
 
         val head = LinearLayout(a).apply {
-            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             addView(summary, LinearLayout.LayoutParams(0, WRAP, 1f))
-            addView(actionButton("Refresh") { load() }, LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(14) })
+            addView(actionButton("Refresh") {
+                load()
+            }, LinearLayout.LayoutParams(WRAP, WRAP).apply {
+                marginEnd = dp(14)
+            })
         }
         refreshFilters()
         box.addView(head)
-        box.addView(HorizontalScrollView(a).apply { isHorizontalScrollBarEnabled = false; addView(filters) })
-        box.addView(ScrollView(a).apply { addView(list) }, LinearLayout.LayoutParams(MATCH, 0, 1f))
+        box.addView(HorizontalScrollView(a).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(filters)
+        })
+        box.addView(ScrollView(a).apply {
+            addView(list)
+        }, LinearLayout.LayoutParams(MATCH, 0, 1f))
         area.addView(box, FrameLayout.LayoutParams(MATCH, MATCH))
         load()
     }
 
     private fun source() {
-        val box = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL }
-        val summary = tv("Loading…", 12f, col(R.color.sub)).apply { setPadding(dp(18), dp(6), dp(18), dp(4)) }
-        val code = tv("", 11f, col(R.color.text), mono = true).apply { setTextIsSelectable(true); setPadding(dp(14), dp(8), dp(14), dp(14)) }
+        val box = LinearLayout(a).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        val summary = tv("Loading…", 12f, col(R.color.sub)).apply {
+            setPadding(dp(18), dp(6), dp(18), dp(4))
+        }
+        val code = tv("", 11f, col(R.color.text), mono = true).apply {
+            setTextIsSelectable(true)
+            setPadding(dp(14), dp(8), dp(14), dp(14))
+        }
         var current = ""
         fun load() {
             summary.text = "Loading…"
             js("(function(){var h='<!DOCTYPE html>\\n'+document.documentElement.outerHTML;return h.length>200000?h.slice(0,200000)+'\\n… (truncated)':h})()") { s ->
                 current = s
                 code.text = s
-                summary.text = "Rendered DOM  •  ${s.count { it == '\n' } + 1} lines  •  ${size(s.length.toLong())}"
+                summary.text = "Rendered DOM  •  ${s.count {
+                    it == '\n'
+                } + 1} lines  •  ${size(s.length.toLong())}"
             }
         }
         val head = LinearLayout(a).apply {
-            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             addView(summary, LinearLayout.LayoutParams(0, WRAP, 1f))
-            addView(actionButton("Copy") { if (current.isNotEmpty()) copy(current) }, LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(8) })
-            addView(actionButton("Refresh") { load() }, LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(14) })
+            addView(actionButton("Copy") {
+                if (current.isNotEmpty()) copy(current)
+            }, LinearLayout.LayoutParams(WRAP, WRAP).apply {
+                marginEnd = dp(8)
+            })
+            addView(actionButton("Refresh") {
+                load()
+            }, LinearLayout.LayoutParams(WRAP, WRAP).apply {
+                marginEnd = dp(14)
+            })
         }
         box.addView(head)
-        val h = HorizontalScrollView(a).apply { addView(code) }
-        box.addView(ScrollView(a).apply { addView(h) }, LinearLayout.LayoutParams(MATCH, 0, 1f))
+        val h = HorizontalScrollView(a).apply {
+            addView(code)
+        }
+        box.addView(ScrollView(a).apply {
+            addView(h)
+        }, LinearLayout.LayoutParams(MATCH, 0, 1f))
         area.addView(box, FrameLayout.LayoutParams(MATCH, MATCH))
         load()
     }
 
     private fun storage() {
-        val list = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(14), dp(2), dp(14), dp(20)) }
-        val sv = ScrollView(a).apply { addView(list) }
+        val list = LinearLayout(a).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(2), dp(14), dp(20))
+        }
+        val sv = ScrollView(a).apply {
+            addView(list)
+        }
 
         fun entryRow(k: String, v: String, onDelete: () -> Unit): View = LinearLayout(a).apply {
-            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(4), dp(6), dp(0), dp(6))
-            val c = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL }
-            c.addView(tv(k, 13f, col(R.color.accent), mono = true).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END })
-            c.addView(tv(if (v.length > 240) v.take(240) + "…" else v, 12f, col(R.color.text), mono = true).apply { setPadding(0, dp(2), 0, 0) })
+            val c = LinearLayout(a).apply {
+                orientation = LinearLayout.VERTICAL
+            }
+            c.addView(tv(k, 13f, col(R.color.accent), mono = true).apply {
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+            })
+            c.addView(tv(if (v.length > 240) v.take(240) + "…" else v, 12f, col(R.color.text), mono = true).apply {
+                setPadding(0, dp(2), 0, 0)
+            })
             addView(c, LinearLayout.LayoutParams(0, WRAP, 1f))
             addView(ImageButton(a).apply {
-                setImageResource(R.drawable.ic_close); background = a.rippleRounded(Color.TRANSPARENT, 18)
-                contentDescription = "Delete"; setOnClickListener { onDelete() }
+                setImageResource(R.drawable.ic_close)
+                background = a.rippleRounded(Color.TRANSPARENT, 18)
+                contentDescription = "Delete"
+                setOnClickListener {
+                    onDelete()
+                }
             }, LinearLayout.LayoutParams(dp(40), dp(40)))
-            setOnClickListener { copy("$k=$v") }
+            setOnClickListener {
+                copy("$k=$v")
+            }
         }
 
         fun cookies(cb: (List<Pair<String, String>>) -> Unit) {
-            fun parse(s: String?): List<Pair<String, String>> = (s ?: "").split(";").map { it.trim() }.filter { it.isNotEmpty() }
-                .map { it.substringBefore('=') to it.substringAfter('=', "") }
-            if (t.secret) js("document.cookie") { cb(parse(it)) } else cb(parse(CookieManager.getInstance().getCookie(t.url)))
+            fun parse(s: String?): List<Pair<String, String>> = (s ?: "").split(";").map {
+                it.trim()
+            }.filter {
+                it.isNotEmpty()
+            }.map {
+                it.substringBefore('=') to it.substringAfter('=', "")
+            }
+            if (t.secret) js("document.cookie") {
+                cb(parse(it))
+            } else cb(parse(CookieManager.getInstance().getCookie(t.url)))
         }
 
         fun load() {
@@ -610,9 +863,15 @@ si.info=function(){
             cookies { ck ->
                 js("(function(){try{return JSON.stringify({l:Object.assign({},localStorage),s:Object.assign({},sessionStorage)})}catch(e){return '{}'}})()") { r ->
                     list.removeAllViews()
-                    val o = try { JSONObject(r) } catch (e: Exception) { JSONObject() }
+                    val o = try {
+                        JSONObject(r)
+                    } catch (e: Exception) {
+                        JSONObject()
+                    }
                     list.addView(section("Cookies (${ck.size})"))
-                    if (ck.isEmpty()) list.addView(tv("None", 13f, col(R.color.sub)).apply { setPadding(dp(4), dp(6), 0, 0) })
+                    if (ck.isEmpty()) list.addView(tv("None", 13f, col(R.color.sub)).apply {
+                        setPadding(dp(4), dp(6), 0, 0)
+                    })
                     for ((k, v) in ck) list.addView(entryRow(k, v) {
                         CookieManager.getInstance().setCookie(t.url, "$k=; Max-Age=0; Path=/")
                         CookieManager.getInstance().flush()
@@ -622,14 +881,18 @@ si.info=function(){
                     for ((key, label) in listOf("l" to "localStorage", "s" to "sessionStorage")) {
                         val m = o.optJSONObject(key) ?: JSONObject()
                         list.addView(section("$label (${m.length()})"))
-                        if (m.length() == 0) list.addView(tv("Empty", 13f, col(R.color.sub)).apply { setPadding(dp(4), dp(6), 0, 0) })
+                        if (m.length() == 0) list.addView(tv("Empty", 13f, col(R.color.sub)).apply {
+                            setPadding(dp(4), dp(6), 0, 0)
+                        })
                         val keys = m.keys().asSequence().toList().sorted()
                         for (k in keys) list.addView(entryRow(k, m.optString(k)) {
                             t.web?.evaluateJavascript("$label.removeItem(" + JSONObject.quote(k) + ")", null)
                             load()
                         })
                     }
-                    if (t.secret) list.addView(tv("Secret tab: only cookies visible to scripts are shown.", 11f, col(R.color.sub)).apply { setPadding(dp(4), dp(14), 0, 0) })
+                    if (t.secret) list.addView(tv("Secret tab: only cookies visible to scripts are shown.", 11f, col(R.color.sub)).apply {
+                        setPadding(dp(4), dp(14), 0, 0)
+                    })
                 }
             }
         }
@@ -638,20 +901,32 @@ si.info=function(){
     }
 
     private fun info() {
-        val list = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(14), dp(2), dp(14), dp(24)) }
-        area.addView(ScrollView(a).apply { addView(list) }, FrameLayout.LayoutParams(MATCH, MATCH))
+        val list = LinearLayout(a).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(2), dp(14), dp(24))
+        }
+        area.addView(ScrollView(a).apply {
+            addView(list)
+        }, FrameLayout.LayoutParams(MATCH, MATCH))
 
         list.addView(section("Page"))
         list.addView(kv("URL", t.url))
-        list.addView(kv("Title", t.title.ifBlank { "—" }))
+        list.addView(kv("Title", t.title.ifBlank {
+            "—"
+        }))
         list.addView(kv("Desktop site", if (t.desktop) "On" else "Off"))
         list.addView(kv("Blocked on this page", t.blocked.get().toString()))
-        val holder = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL }
+        val holder = LinearLayout(a).apply {
+            orientation = LinearLayout.VERTICAL
+        }
         list.addView(holder)
 
-        js("(function(){var n=performance.getEntriesByType('navigation')[0];var tm=n?{dns:Math.round(n.domainLookupEnd-n.domainLookupStart),tcp:Math.round(n.connectEnd-n.connectStart),ttfb:Math.round(n.responseStart-n.requestStart),dcl:Math.round(n.domContentLoadedEventEnd),load:Math.round(n.loadEventEnd)}:null;" +
-            "return JSON.stringify({ua:navigator.userAgent,vw:innerWidth,vh:innerHeight,dpr:devicePixelRatio,rs:document.readyState,cs:document.characterSet,sec:isSecureContext,nodes:document.getElementsByTagName('*').length,lang:navigator.language,mem:(performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576):null),tm:tm})})()") { r ->
-            val o = try { JSONObject(r) } catch (e: Exception) { JSONObject() }
+        js("(function(){var n=performance.getEntriesByType('navigation')[0];var tm=n?{dns:Math.round(n.domainLookupEnd-n.domainLookupStart),tcp:Math.round(n.connectEnd-n.connectStart),ttfb:Math.round(n.responseStart-n.requestStart),dcl:Math.round(n.domContentLoadedEventEnd),load:Math.round(n.loadEventEnd)}:null;" + "return JSON.stringify({ua:navigator.userAgent,vw:innerWidth,vh:innerHeight,dpr:devicePixelRatio,rs:document.readyState,cs:document.characterSet,sec:isSecureContext,nodes:document.getElementsByTagName('*').length,lang:navigator.language,mem:(performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576):null),tm:tm})})()") { r ->
+            val o = try {
+                JSONObject(r)
+            } catch (e: Exception) {
+                JSONObject()
+            }
             holder.removeAllViews()
             holder.addView(kv("Document", "${o.optString("rs")}  •  ${o.optString("cs")}  •  ${o.optInt("nodes")} nodes  •  " + if (o.optBoolean("sec")) "secure context" else "insecure context"))
             holder.addView(kv("Viewport", "${o.optInt("vw")} × ${o.optInt("vh")}  @ ${o.optDouble("dpr")}x  •  ${o.optString("lang")}"))
@@ -661,22 +936,40 @@ si.info=function(){
             holder.addView(kv("User agent", o.optString("ua")))
         }
 
-        val wv = try { WebView.getCurrentWebViewPackage()?.let { it.packageName + " " + it.versionName } } catch (e: Exception) { null }
+        val wv = try {
+            WebView.getCurrentWebViewPackage()?.let {
+                it.packageName + " " + it.versionName
+            }
+        } catch (e: Exception) {
+            null
+        }
         if (wv != null) list.addView(kv("WebView", wv))
 
         list.addView(section("Actions"))
-        val actions = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(4), dp(6), dp(4), dp(6)) }
+        val actions = LinearLayout(a).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(4), dp(6), dp(4), dp(6))
+        }
         actions.addView(actionButton("Hard reload", accent = true) {
-            t.web?.clearCache(true); t.web?.reload(); dialog.dismiss()
-        }, LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(8) })
-        actions.addView(actionButton("Copy URL") { copy(t.url) })
+            t.web?.clearCache(true)
+            t.web?.reload()
+            dialog.dismiss()
+        }, LinearLayout.LayoutParams(WRAP, WRAP).apply {
+            marginEnd = dp(8)
+        })
+        actions.addView(actionButton("Copy URL") {
+            copy(t.url)
+        })
         list.addView(actions)
 
         val usb = LinearLayout(a).apply {
-            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(4), dp(14), dp(4), dp(4))
         }
-        val tx = LinearLayout(a).apply { orientation = LinearLayout.VERTICAL }
+        val tx = LinearLayout(a).apply {
+            orientation = LinearLayout.VERTICAL
+        }
         tx.addView(tv("USB debugging", 14f, col(R.color.text)))
         tx.addView(tv("Inspect tabs from a computer with chrome://inspect", 12f, col(R.color.sub)))
         usb.addView(tx, LinearLayout.LayoutParams(0, WRAP, 1f))
@@ -692,3 +985,4 @@ si.info=function(){
         list.addView(usb)
     }
 }
+
