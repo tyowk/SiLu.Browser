@@ -1602,7 +1602,7 @@ post({t:'state'});
             setPadding(dp(10), dp(8), dp(10), dp(10))
             contentDescription = label
             setOnClickListener { closeTabs(); select(t) }
-            pressable()
+            swipeDismiss { closeTab(t); renderTabs() }
         }
         val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         val ic = t.icon
