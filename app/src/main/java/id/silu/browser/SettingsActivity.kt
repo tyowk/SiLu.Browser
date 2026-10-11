@@ -325,7 +325,7 @@ class SettingsActivity : AppCompatActivity() {
             c.addView(frame, LinearLayout.LayoutParams(MATCH, dp(112)))
             c.addView(TextView(this).apply {
                 text = (cards.firstOrNull { it.first == name }?.let { name } ?: name)
-                textSize = 14f; setTextColor(if (selected) col(R.color.accent) else col(R.color.sub))
+                textSize = 14f; gravity = Gravity.CENTER; setTextColor(if (selected) col(R.color.accent) else col(R.color.sub))
                 typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
                 setPadding(0, dp(10), 0, 0)
             })
@@ -457,7 +457,7 @@ class SettingsActivity : AppCompatActivity() {
             val col = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL
                 addView(ring, LinearLayout.LayoutParams(dp(52), dp(52)))
-                addView(TextView(this@SettingsActivity).apply { text = name; textSize = 11f; setTextColor(col(R.color.sub)); setPadding(0, dp(4), 0, 0) })
+                addView(TextView(this@SettingsActivity).apply { text = name; textSize = 11f; gravity = Gravity.CENTER; textAlignment = View.TEXT_ALIGNMENT_CENTER; setTextColor(col(if (sel) R.color.accent else R.color.sub)); setPadding(0, dp(4), 0, 0) }, LinearLayout.LayoutParams(MATCH, WRAP))
             }
             chips.addView(col, LinearLayout.LayoutParams(dp(64), WRAP))
         }
