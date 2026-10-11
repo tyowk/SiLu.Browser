@@ -17,6 +17,9 @@ import android.graphics.Matrix
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
@@ -59,6 +62,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.appcompat.widget.SwitchCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -109,14 +113,19 @@ class MainActivity : AppCompatActivity() {
         val scripts = ArrayList<ScriptHandler>()
         val blocked = AtomicInteger(0)
         @Volatile var allow = false
-        @Volatile var innerScroll = false
         var upgradedFrom: String? = null
+        @Volatile var innerScroll = false
+        var offlineUrl: String? = null
+        val console = ArrayList<DevTools.Entry>()
     }
 
     class Sugg(val kind: Int, val text: String, val url: String? = null)
 
     companion object {
         const val HOME = "https://appassets.androidplatform.net/assets/home.html"
+        const val ACTION_SEARCH = "id.silu.browser.SEARCH"
+        const val ACTION_SEARCH_SECRET = "id.silu.browser.SEARCH_SECRET"
+        const val OFFLINE_TITLE = "Offline"
 
         const val SHIM = "var unsafeWindow=window;var GM_addStyle=function(c){var s=document.createElement('style');s.textContent=c;(document.head||document.documentElement).appendChild(s);return s};var GM_log=function(){console.log.apply(console,arguments)};"
 
@@ -479,6 +488,7 @@ post({t:'state'});
             tabs.isEmpty() -> addTab(null)
             else -> select(tabs[cfg.prefs.getInt("active", 0).coerceIn(0, tabs.lastIndex)])
         }
+        if (savedInstanceState == null) handleWidget(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -486,10 +496,33 @@ post({t:'state'});
         setIntent(intent)
         val link = intent.dataString
         if (link != null && link.startsWith("http")) addTab(link)
+        handleWidget(intent)
     }
+
+    private fun handleWidget(i: Intent?) {
+        val secret = when (i?.action) {
+            ACTION_SEARCH -> false
+            ACTION_SEARCH_SECRET -> true
+            else -> return
+        }
+        i?.action = null
+        if (pageOverlay.visibility == View.VISIBLE) closePage()
+        if (tabsOverlay.visibility == View.VISIBLE) closeTabs()
+        val c = cur
+        if (secret) { if (c == null || !c.secret || !isHome(c.url)) addTab(null, true) }
+        else if (c == null || c.secret || !isHome(c.url)) addTab(null)
+        urlBox.postDelayed({
+            urlBox.requestFocus()
+            urlBox.selectAll()
+            WindowCompat.getInsetsController(window, urlBox).show(WindowInsetsCompat.Type.ime())
+        }, 250)
+    }
+
+    internal fun prefs() = cfg.prefs
 
     override fun onPause() {
         super.onPause()
+        watchNetwork(false)
         val normal = tabs.filter { !it.secret }
         val arr = JSONArray()
         normal.forEach { arr.put(it.url) }
@@ -502,6 +535,7 @@ post({t:'state'});
 
     override fun onResume() {
         super.onResume()
+        watchNetwork(true)
         cur?.web?.onResume()
         cur?.web?.resumeTimers()
         adsOn = cfg.blockAds
@@ -645,6 +679,7 @@ post({t:'state'});
     }
 
     private fun createWeb(t: Tab): WebView {
+        WebView.setWebContentsDebuggingEnabled(cfg.prefs.getBoolean("usbdebug", false))
         val web = WebView(this)
         t.web = web
         if (t.secret) {
@@ -680,6 +715,10 @@ post({t:'state'});
                 WebViewCompat.WebMessageListener { _, _, _, _, _ -> onPasskeyAttempt() })
             WebViewCompat.addWebMessageListener(web, "siluScroll", setOf("*"),
                 WebViewCompat.WebMessageListener { _, message, _, _, _ -> t.innerScroll = message.data == "1" })
+            WebViewCompat.addWebMessageListener(web, "siluDev", setOf("*"),
+                WebViewCompat.WebMessageListener { _, msg, _, isMain, _ ->
+                    if (isMain && msg.data == "picked") runOnUiThread { if (!isFinishing) DevTools(this, t, 1).show() }
+                })
         }
         web.webViewClient = client(t)
         web.webChromeClient = chrome(t)
@@ -773,6 +812,7 @@ post({t:'state'});
             t.loading = true
             t.title = ""
             t.innerScroll = false
+            if (!u.startsWith("data:")) t.console.clear()
             val n = t.blocked.getAndSet(0)
             if (n > 0) cfg.blockedTotal += n
             val h = hostOf(u)
@@ -812,12 +852,14 @@ post({t:'state'});
         }
 
         override fun onReceivedError(v: WebView, r: WebResourceRequest, e: WebResourceError) {
-            if (r.isForMainFrame) showError(v, t, r.url.toString(), e.description.toString())
+            if (!r.isForMainFrame) return
+            if (!isOnline()) showOffline(v, t, r.url.toString())
+            else showError(v, t, r.url.toString(), e.description.toString(), e.errorCode)
         }
 
         override fun onReceivedSslError(v: WebView, h: SslErrorHandler, e: SslError) {
             h.cancel()
-            showError(v, t, e.url ?: v.url ?: "", "The site's security certificate isn't trusted.")
+            showError(v, t, e.url ?: v.url ?: "", "net::ERR_CERT_AUTHORITY_INVALID", WebViewClient.ERROR_FAILED_SSL_HANDSHAKE)
         }
 
         override fun onReceivedHttpAuthRequest(v: WebView, h: HttpAuthHandler, hostName: String, realm: String) {
@@ -855,6 +897,13 @@ post({t:'state'});
         }
 
         override fun onReceivedTitle(v: WebView, title: String?) { t.title = title ?: "" }
+
+        override fun onConsoleMessage(cm: ConsoleMessage): Boolean {
+            if (t.console.size >= 400) t.console.removeAt(0)
+            val src = cm.sourceId().orEmpty().substringAfterLast('/').let { if (it.isEmpty()) "" else "$it:${cm.lineNumber()}" }
+            t.console.add(DevTools.Entry(cm.messageLevel().name, cm.message().orEmpty(), src))
+            return true
+        }
         override fun onReceivedIcon(v: WebView, icon: Bitmap?) { t.icon = icon }
 
         override fun onCreateWindow(v: WebView, isDialog: Boolean, userGesture: Boolean, msg: Message): Boolean {
@@ -956,20 +1005,75 @@ post({t:'state'});
         WindowCompat.getInsetsController(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
     }
 
-    private fun showError(v: WebView, t: Tab, url: String, msg: String) {
+    private fun readAsset(name: String): String = assets.open(name).bufferedReader().use { it.readText() }
+
+    private fun jsq(x: String): String = JSONObject.quote(x).replace("</", "<\\/")
+
+    private fun isOnline(): Boolean {
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return true
+        val n = cm.activeNetwork ?: return false
+        val c = cm.getNetworkCapabilities(n) ?: return false
+        return c.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
+    private fun showOffline(v: WebView, t: Tab, url: String) {
+        t.upgradedFrom = null
+        t.offlineUrl = url
+        val page = readAsset("offline.html")
+            .replace("{{HOST}}", TextUtils.htmlEncode(hostOf(url)))
+            .replace("{{TARGET}}", jsq(url))
+            .replace("{{HOME}}", jsq(homeUrl(t.secret)))
+        v.loadDataWithBaseURL(url, page, "text/html", "utf-8", url)
+    }
+
+    private fun showError(v: WebView, t: Tab, url: String, msg: String, code: Int) {
         val http = t.upgradedFrom
         t.upgradedFrom = null
-        val bg = if (night) "#0F0F11" else "#F2F3F5"
-        val fg = if (night) "#F2F2F2" else "#1B1B1D"
-        fun btn(label: String, target: String, accent: Boolean) =
-            "<button onclick='location.replace(" + JSONObject.quote(target).replace("'", "\\u0027") + ")' style='margin:6px;border:0;border-radius:24px;padding:14px 26px;font-size:16px;" +
-                (if (accent) "background:#3E91FF;color:#fff" else "background:transparent;color:#3E91FF;border:1px solid #3E91FF") + "'>" + label + "</button>"
-        val page = "<html><head><meta name='viewport' content='width=device-width,initial-scale=1'><title>Can&#39;t open page</title></head>" +
-            "<body style='margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:$bg;color:$fg;font-family:sans-serif;text-align:center;padding:24px;box-sizing:border-box'>" +
-            "<div style='font-size:44px'>&#9888;</div><h2 style='margin:8px 0'>Can&#39;t open this page</h2>" +
-            "<p style='opacity:.7;margin:0 0 14px;word-break:break-all'>" + TextUtils.htmlEncode(hostOf(url)) + "<br>" + TextUtils.htmlEncode(msg) + "</p>" +
-            btn("Try again", url, true) + (if (http != null) btn("Open HTTP version", http, false) else "") + "</body></html>"
+        t.offlineUrl = null
+        val (title, hint) = when (code) {
+            WebViewClient.ERROR_HOST_LOOKUP -> "Server not found" to "Check the address for typing mistakes, or try again later."
+            WebViewClient.ERROR_CONNECT, WebViewClient.ERROR_TIMEOUT -> "Couldn't connect" to "The site took too long to respond or refused the connection."
+            WebViewClient.ERROR_FAILED_SSL_HANDSHAKE, WebViewClient.ERROR_UNSUPPORTED_SCHEME -> "Connection isn't secure" to "The site's security certificate isn't trusted, so SiLu stopped loading it."
+            WebViewClient.ERROR_TOO_MANY_REQUESTS, WebViewClient.ERROR_REDIRECT_LOOP -> "Too many redirects" to "The site keeps sending you in circles. Clearing its cookies may help."
+            else -> "Can't open this page" to "Something went wrong while loading it."
+        }
+        val httpBtn = if (http != null) "<button class=\"ghost\" id=\"http\">Open HTTP version</button>" else ""
+        val page = readAsset("error.html")
+            .replace("{{TITLE}}", TextUtils.htmlEncode(title))
+            .replace("{{HINT}}", TextUtils.htmlEncode(hint))
+            .replace("{{HOST}}", TextUtils.htmlEncode(hostOf(url)))
+            .replace("{{CODE}}", TextUtils.htmlEncode(msg.ifBlank { "Error $code" } + "  ($code)"))
+            .replace("{{HTTP_BTN}}", httpBtn)
+            .replace("{{TARGET}}", jsq(url))
+            .replace("{{HOME}}", jsq(homeUrl(t.secret)))
+            .replace("{{HTTP}}", jsq(http ?: ""))
         v.loadDataWithBaseURL(url, page, "text/html", "utf-8", url)
+    }
+
+    private var netCb: ConnectivityManager.NetworkCallback? = null
+
+    private fun watchNetwork(on: Boolean) {
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return
+        try {
+            if (on && netCb == null) {
+                val cb = object : ConnectivityManager.NetworkCallback() {
+                    override fun onAvailable(network: Network) {
+                        runOnUiThread {
+                            tabs.filter { it.offlineUrl != null && it.web?.title == OFFLINE_TITLE }.forEach { tab ->
+                                val u = tab.offlineUrl ?: return@forEach
+                                tab.offlineUrl = null
+                                tab.web?.loadUrl(u)
+                            }
+                        }
+                    }
+                }
+                cm.registerDefaultNetworkCallback(cb)
+                netCb = cb
+            } else if (!on) {
+                netCb?.let { cm.unregisterNetworkCallback(it) }
+                netCb = null
+            }
+        } catch (e: Exception) { }
     }
 
     private fun placeAddr() {
@@ -1174,7 +1278,7 @@ post({t:'state'});
             setImageResource(R.drawable.ic_arrow_ul)
             background = selectable()
             contentDescription = "Use this suggestion"
-            setOnClickListener { urlBox.setText(s.text); urlBox.setSelection(urlBox.text.length) }
+            setOnClickListener { urlBox.setText(s.url ?: s.text); urlBox.setSelection(urlBox.text.length) }
         }, LinearLayout.LayoutParams(dp(46), dp(46)))
         return r
     }
@@ -1259,6 +1363,7 @@ post({t:'state'});
         }
         card.addView(zoomRow(t))
         divider()
+        if (!home) item(R.drawable.ic_terminal, "Developer tools") { DevTools(this, t).show() }
         item(R.drawable.ic_code, "Userscripts") { showUserscripts() }
         item(R.drawable.ic_sliders, "Settings") { openSettings() }
 
@@ -1998,31 +2103,165 @@ post({t:'state'});
         }
     }
 
-    private fun showEditor() {
-        val et = EditText(this).apply {
-            setText(TEMPLATE); typeface = Typeface.MONOSPACE; textSize = 12f; minLines = 10
-            gravity = Gravity.TOP or Gravity.START
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+    private fun showScriptEditor(id: String?) {
+        var existing: JSONObject? = null
+        if (id != null) {
+            val arr = scripts()
+            for (i in 0 until arr.length()) if (arr.getJSONObject(i).getString("id") == id) existing = arr.getJSONObject(i)
         }
-        val box = FrameLayout(this).apply { setPadding(dp(20), dp(8), dp(20), 0); addView(et) }
-        MaterialAlertDialogBuilder(this).setTitle("Add userscript").setView(box)
-            .setPositiveButton("Save") { _, _ -> addScript(et.text.toString()); showUserscripts() }
+        val original = existing?.getString("code") ?: TEMPLATE
+        var dirty = false
+        lateinit var dlg: android.app.Dialog
+
+        fun save(et: EditText) {
+            val code = et.text.toString()
+            if (code.isBlank()) { toast("Script is empty"); return }
+            val a2 = scripts()
+            if (id == null) {
+                a2.put(JSONObject().put("id", System.currentTimeMillis().toString()).put("name", meta(code).first).put("code", code).put("on", true))
+            } else {
+                for (i in 0 until a2.length()) {
+                    val o = a2.getJSONObject(i)
+                    if (o.getString("id") == id) { o.put("code", code); o.put("name", meta(code).first) }
+                }
+            }
+            saveScripts(a2)
+            toast("Script saved")
+            dirty = false
+            dlg.dismiss()
+            showUserscripts(keepScroll = true)
+        }
+
+        val et = EditText(this).apply {
+            setText(original)
+            typeface = Typeface.MONOSPACE; textSize = 13f
+            setTextColor(col(R.color.text)); setHintTextColor(col(R.color.sub))
+            background = null
+            gravity = Gravity.TOP or Gravity.START
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            setHorizontallyScrolling(false)
+            addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, af: Int) {}
+                override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) { dirty = true }
+                override fun afterTextChanged(s: Editable?) {}
+            })
+        }
+        dirty = false
+
+        fun insert(text: String) {
+            val st = et.selectionStart.coerceAtLeast(0)
+            val en = et.selectionEnd.coerceAtLeast(0)
+            et.text.replace(minOf(st, en), maxOf(st, en), text)
+        }
+
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(col(R.color.chrome)) }
+        val top = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(6), dp(6), dp(12), dp(6))
+            setBackgroundColor(col(R.color.bar))
+        }
+        top.addView(ImageButton(this).apply {
+            setImageResource(R.drawable.ic_close); background = rippleRounded(Color.TRANSPARENT, 24); contentDescription = "Close"
+            setOnClickListener { dlg.onBackPressed() }
+        }, LinearLayout.LayoutParams(dp(48), dp(48)))
+        top.addView(TextView(this).apply {
+            text = if (id == null) "New script" else "Edit script"; textSize = 18f; typeface = Typeface.DEFAULT_BOLD
+            setTextColor(col(R.color.text)); setPadding(dp(6), 0, 0, 0)
+        }, LinearLayout.LayoutParams(0, WRAP, 1f))
+        if (id != null) top.addView(ImageButton(this).apply {
+            setImageResource(R.drawable.ic_trash); background = rippleRounded(Color.TRANSPARENT, 24); contentDescription = "Delete script"
+            setOnClickListener {
+                MaterialAlertDialogBuilder(this@MainActivity).setTitle("Delete this script?")
+                    .setMessage(meta(et.text.toString()).first)
+                    .setPositiveButton("Delete") { _, _ -> updateScripts(id, true); dirty = false; dlg.dismiss(); showUserscripts(keepScroll = true) }
+                    .setNegativeButton("Cancel", null).show()
+            }
+        }, LinearLayout.LayoutParams(dp(48), dp(48)))
+        top.addView(TextView(this).apply {
+            text = "Save"; textSize = 14f; typeface = Typeface.DEFAULT_BOLD; gravity = Gravity.CENTER
+            setTextColor(col(R.color.chrome)); setPadding(dp(20), dp(10), dp(20), dp(10))
+            background = rounded(col(R.color.accent), 22)
+            setOnClickListener { save(et) }
+        }, LinearLayout.LayoutParams(WRAP, WRAP).apply { marginStart = dp(6) })
+        root.addView(top)
+        root.addView(et, LinearLayout.LayoutParams(MATCH, 0, 1f))
+
+        val tools = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(10), dp(8), dp(10), dp(8)) }
+        fun chip(label: String, ins: String) = tools.addView(TextView(this).apply {
+            this.text = label; textSize = 13f; typeface = Typeface.MONOSPACE
+            setTextColor(col(R.color.accent)); setPadding(dp(14), dp(8), dp(14), dp(8))
+            background = rounded(withAlpha(col(R.color.accent), 36), 18)
+            setOnClickListener { insert(ins) }
+        }, LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(8) })
+        chip("// @match", "// @match      https://example.com/*\n")
+        chip("// @exclude", "// @exclude    https://example.com/private/*\n")
+        chip("GM_addStyle", "GM_addStyle(\"body { }\");\n")
+        chip("querySelector", "document.querySelector(\"\")")
+        chip("Reset template", "")
+        (tools.getChildAt(tools.childCount - 1) as TextView).setOnClickListener { et.setText(TEMPLATE); dirty = true }
+        root.addView(View(this).apply { setBackgroundColor(col(R.color.divider)) }, LinearLayout.LayoutParams(MATCH, 1))
+        root.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; setBackgroundColor(col(R.color.bar)); addView(tools) })
+
+        dlg = object : android.app.Dialog(this, R.style.Theme_Silu) {
+            @Deprecated("Deprecated in Java")
+            override fun onBackPressed() {
+                if (!dirty) { dismiss(); return }
+                MaterialAlertDialogBuilder(this@MainActivity).setTitle("Discard changes?")
+                    .setPositiveButton("Discard") { _, _ -> dirty = false; dismiss() }
+                    .setNegativeButton("Keep editing", null).show()
+            }
+        }
+        dlg.setContentView(root)
+        dlg.window?.apply {
+            setLayout(MATCH, MATCH)
+            setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+            setBackgroundDrawable(ColorDrawable(col(R.color.chrome)))
+            statusBarColor = col(R.color.bar)
+            navigationBarColor = col(R.color.bar)
+        }
+        dlg.show()
+        et.requestFocus()
+    }
+
+    private fun installFromLink() {
+        val input = EditText(this).apply {
+            hint = "https://example.com/script.user.js"; setSingleLine()
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+        }
+        val box = FrameLayout(this).apply { setPadding(dp(24), dp(8), dp(24), 0); addView(input) }
+        MaterialAlertDialogBuilder(this).setTitle("Install from link").setView(box)
+            .setPositiveButton("Fetch") { _, _ ->
+                val u = input.text.toString().trim()
+                if (u.startsWith("http")) installUserscript(u) else toast("Enter a full link")
+            }
             .setNegativeButton("Cancel", null).show()
     }
 
-    private fun showUserscripts() {
-        showPage("Userscripts", "scripts") { box ->
+    private fun showUserscripts(keepScroll: Boolean = false) {
+        showPage("Userscripts", "scripts", keepScroll) { box ->
             val arr = scripts()
-            if (arr.length() == 0) box.addView(note("No userscripts yet.\nPaste your own code, or open a link ending in .user.js."))
+            box.addView(row("New script", "Write or paste your own code", R.drawable.ic_plus) { showScriptEditor(null) })
+            box.addView(row("Install from link", "Fetch a .user.js file", R.drawable.ic_link) { installFromLink() })
+            if (arr.length() == 0) box.addView(note("No userscripts yet.\nTap New script, or open a link ending in .user.js."))
             for (i in 0 until arr.length()) {
                 val o = arr.getJSONObject(i)
                 val id = o.getString("id")
                 val on = o.optBoolean("on", true)
                 val inc = meta(o.getString("code")).second
-                box.addView(row(o.optString("name"), (if (on) "On" else "Off") + " • " + (inc.firstOrNull() ?: "all sites"), R.drawable.ic_code,
-                    onClose = { updateScripts(id, true); showUserscripts() }) { updateScripts(id, false); showUserscripts() })
+                val r = row(o.optString("name"), (if (on) "On" else "Off") + "  •  " + (inc.firstOrNull() ?: "all sites") + "  •  tap to edit", R.drawable.ic_code) {
+                    showScriptEditor(id)
+                } as LinearLayout
+                r.addView(SwitchCompat(this).apply {
+                    isChecked = on
+                    val st = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
+                    thumbTintList = ColorStateList(st, intArrayOf(col(R.color.accent), col(R.color.sub)))
+                    trackTintList = ColorStateList(st, intArrayOf(withAlpha(col(R.color.accent), 100), col(R.color.pill)))
+                    setOnCheckedChangeListener { _, _ -> updateScripts(id, false); showUserscripts(keepScroll = true) }
+                }, LinearLayout.LayoutParams(WRAP, WRAP).apply { marginStart = dp(6); marginEnd = dp(6) })
+                box.addView(r)
             }
-            box.addView(row("Add script", "Tap a script to turn it on or off", R.drawable.ic_plus) { showEditor() })
         }
     }
 }
