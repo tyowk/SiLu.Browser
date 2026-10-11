@@ -1,4 +1,5 @@
 package id.silu.browser
+
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -85,3 +86,26 @@ fun Context.shortcutDialog(old: Entry?, onSave: (String, String) -> Unit) {
     }.setNegativeButton("Cancel", null).show()
 }
 
+class SegPillDrawable(private val base: Drawable?, private val pad: Float) : Drawable() {
+    private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+    private val rect = android.graphics.RectF()
+    var pos = 0f
+        set(v) { field = v; invalidateSelf() }
+    var color = 0
+        set(v) { field = v; paint.color = v; invalidateSelf() }
+
+    override fun draw(canvas: android.graphics.Canvas) {
+        val b = bounds
+        base?.let { it.setBounds(b.left, b.top, b.right, b.bottom); it.draw(canvas) }
+        val segW = (b.width() - 2 * pad) / 2f
+        val h = b.height() - 2 * pad
+        val left = b.left + pad + pos * segW
+        rect.set(left, b.top + pad, left + segW, b.top + pad + h)
+        canvas.drawRoundRect(rect, h / 2f, h / 2f, paint)
+    }
+
+    override fun setAlpha(alpha: Int) { paint.alpha = alpha }
+    override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) { paint.colorFilter = colorFilter }
+    @Suppress("DEPRECATION")
+    override fun getOpacity(): Int = android.graphics.PixelFormat.TRANSLUCENT
+}

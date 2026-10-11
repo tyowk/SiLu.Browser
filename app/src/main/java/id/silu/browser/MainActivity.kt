@@ -109,6 +109,7 @@ class MainActivity : AppCompatActivity() {
         val scripts = ArrayList<ScriptHandler>()
         val blocked = AtomicInteger(0)
         @Volatile var allow = false
+        @Volatile var innerScroll = false
         var upgradedFrom: String? = null
     }
 
@@ -128,18 +129,34 @@ GM_addStyle("h1 { color: #3E91FF !important; }");
 """
 
         const val DESKTOP_JS = """(function(){
+if(window.__siluDeskOn)return;window.__siluDeskOn=1;
 try{Object.defineProperty(navigator,'userAgentData',{get:function(){return undefined}})}catch(e){}
 try{Object.defineProperty(navigator,'platform',{get:function(){return 'Linux x86_64'}})}catch(e){}
 var W=1280,busy=false;
-function content(){var sw=screen.width||W;var z=Math.max(.1,Math.min(1,sw/W));return 'width='+W+', initial-scale='+z.toFixed(4)+', minimum-scale=.1, maximum-scale=10, user-scalable=yes'}
+function scale(){var sw=screen.width||W;return Math.max(.1,Math.min(1,sw/W))}
+function content(z){return 'width='+W+', initial-scale='+z.toFixed(4)+', minimum-scale=.1, maximum-scale=10, user-scalable=yes'}
 function fix(){if(busy)return;var h=document.head||document.documentElement;if(!h)return;busy=true;
 var all=document.querySelectorAll('meta[name=viewport]'),m=all[0];
 for(var i=1;i<all.length;i++)all[i].remove();
 if(!m){m=document.createElement('meta');m.name='viewport';h.appendChild(m)}
-var c=content();if(m.getAttribute('content')!==c)m.setAttribute('content',c);busy=false}
+var c=content(scale());if(m.getAttribute('content')!==c)m.setAttribute('content',c);busy=false}
+function kick(){fix();var m=document.querySelector('meta[name=viewport]');if(!m)return;
+busy=true;var z=scale();m.setAttribute('content',content(Math.min(1,z+.05)));m.setAttribute('content',content(z));busy=false}
+window.__siluKick=kick;
 fix();
 document.addEventListener('DOMContentLoaded',fix);window.addEventListener('load',fix);
-try{new MutationObserver(fix).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['content','name']})}catch(e){}
+try{new MutationObserver(fix).observe(document,{childList:true,subtree:true,attributes:true,attributeFilter:['content','name']})}catch(e){}
+})();"""
+
+        const val DESKTOP_KICK_JS = "window.__siluKick&&window.__siluKick();"
+
+        const val SCROLL_JS = """(function(){
+if(window.__siluSc)return;window.__siluSc=1;
+function post(v){try{siluScroll.postMessage(v?'1':'0')}catch(e){}}
+function chk(ev){var p=ev.composedPath?ev.composedPath():[ev.target],v=false;
+for(var i=0;i<p.length;i++){var e=p[i];if(e&&e.nodeType===1&&e.scrollTop>0){v=true;break}}
+post(v)}
+document.addEventListener('touchstart',chk,{capture:true,passive:true});
 })();"""
 
         const val COSMETIC_JS = """(function(){var s=document.createElement('style');
@@ -411,7 +428,7 @@ post({t:'state'});
             cur?.web?.reload()
             ui.postDelayed({ swipe.isRefreshing = false }, 1500)
         }
-        swipe.setOnChildScrollUpCallback { _, _ -> cur?.let { isHome(it.url) || (it.web?.scrollY ?: 0) > 0 } ?: false }
+        swipe.setOnChildScrollUpCallback { _, _ -> cur?.let { isHome(it.url) || (it.web?.scrollY ?: 0) > 0 || it.innerScroll } ?: false }
 
         findInput.onChange { q ->
             val w = cur?.web ?: return@onChange
@@ -422,15 +439,15 @@ post({t:'state'});
         findViewById<View>(R.id.findDown).setOnClickListener { cur?.web?.findNext(true) }
         findViewById<View>(R.id.findClose).setOnClickListener { closeFind() }
 
-        segTabs.setOnClickListener { showSecretTabs = false; renderTabs() }
-        segSecret.setOnClickListener { showSecretTabs = true; renderTabs() }
+        segTabs.setOnClickListener { switchTabsSegment(false) }
+        segSecret.setOnClickListener { switchTabsSegment(true) }
         findViewById<View>(R.id.btnTabsDone).setOnClickListener { closeTabs() }
         findViewById<View>(R.id.btnNewTab).setOnClickListener {
             val secret = showSecretTabs
             closeTabs()
             addTab(null, secret)
         }
-        findViewById<View>(R.id.btnCloseAll).setOnClickListener { closeAll(showSecretTabs) }
+        findViewById<View>(R.id.btnCloseAll).setOnClickListener { confirmCloseAll(showSecretTabs) }
         findViewById<View>(R.id.pageBack).setOnClickListener { closePage() }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -569,6 +586,16 @@ post({t:'state'});
         }
     }
 
+    private fun confirmCloseAll(secret: Boolean) {
+        val n = tabs.count { it.secret == secret }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Close all tabs?")
+            .setMessage(if (n == 1) "1 tab will be closed." else "$n tabs will be closed.")
+            .setPositiveButton("Close all") { _, _ -> closeAll(secret) }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun closeAll(secret: Boolean) {
         val gone = tabs.filter { it.secret == secret }
         gone.forEach { t ->
@@ -651,6 +678,8 @@ post({t:'state'});
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             WebViewCompat.addWebMessageListener(web, "siluPk", setOf("*"),
                 WebViewCompat.WebMessageListener { _, _, _, _, _ -> onPasskeyAttempt() })
+            WebViewCompat.addWebMessageListener(web, "siluScroll", setOf("*"),
+                WebViewCompat.WebMessageListener { _, message, _, _, _ -> t.innerScroll = message.data == "1" })
         }
         web.webViewClient = client(t)
         web.webChromeClient = chrome(t)
@@ -690,6 +719,7 @@ post({t:'state'});
             try { t.scripts.add(WebViewCompat.addDocumentStartJavaScript(web, js, setOf("*"))) } catch (e: Exception) { }
         }
         add(PASSKEY_JS)
+        add(SCROLL_JS)
         if (t.desktop) add(DESKTOP_JS)
         if (cfg.blockAds) add(COSMETIC_JS)
         if (!t.secret && notifSupported()) add(NOTIF_JS)
@@ -742,6 +772,7 @@ post({t:'state'});
             t.url = u
             t.loading = true
             t.title = ""
+            t.innerScroll = false
             val n = t.blocked.getAndSet(0)
             if (n > 0) cfg.blockedTotal += n
             val h = hostOf(u)
@@ -761,8 +792,15 @@ post({t:'state'});
             if (cfg.forceZoom) v.evaluateJavascript(FORCE_ZOOM_JS, null)
             if (t.scripts.isEmpty()) {
                 v.evaluateJavascript(PASSKEY_JS, null)
+                v.evaluateJavascript(SCROLL_JS, null)
                 if (t.desktop) v.evaluateJavascript(DESKTOP_JS, null)
                 if (cfg.blockAds) v.evaluateJavascript(COSMETIC_JS, null)
+            }
+            if (t.desktop) {
+                v.evaluateJavascript(DESKTOP_KICK_JS, null)
+                v.postDelayed({
+                    if (t.desktop && t.web === v) v.evaluateJavascript(DESKTOP_KICK_JS, null)
+                }, 400)
             }
             injectUserscripts(v, u)
         }
@@ -1303,7 +1341,11 @@ post({t:'state'});
     }
 
     private fun translatePage(t: Tab) {
-        navigate("https://translate.google.com/translate?sl=auto&tl=" + Locale.getDefault().language + "&u=" + Uri.encode(t.url))
+        val l = Locale.getDefault()
+        val tag = l.toLanguageTag()
+        var lang = tag.substringBefore('-')
+        if (lang == "zh") lang = if (tag.contains("Hant") || l.country in setOf("TW", "HK", "MO")) "zh-TW" else "zh-CN"
+        navigate("https://translate.google.com/translate?sl=auto&tl=" + lang + "&u=" + Uri.encode(t.url))
     }
 
     private fun printPage(t: Tab) {
@@ -1343,6 +1385,9 @@ post({t:'state'});
         popup?.dismiss()
         cur?.let { capture(it) }
         showSecretTabs = cur?.secret == true
+        segAnim?.cancel()
+        tabsGrid.animate().cancel(); tabsGrid.alpha = 1f; tabsGrid.translationX = 0f
+        tabsTitle.animate().cancel(); tabsTitle.alpha = 1f
         tabsOverlay.animate().cancel()
         tabsOverlay.visibility = View.VISIBLE
         tabsOverlay.alpha = 0f; tabsOverlay.scaleX = .94f; tabsOverlay.scaleY = .94f
@@ -1356,13 +1401,65 @@ post({t:'state'});
             .withEndAction { tabsOverlay.visibility = View.GONE; updateSecure() }.start()
     }
 
+    private var segPill: SegPillDrawable? = null
+    private var segAnim: android.animation.ValueAnimator? = null
+
+    private fun segPillDrawable(): SegPillDrawable {
+        segPill?.let { return it }
+        val pill = segTabs.parent as View
+        val d = SegPillDrawable(pill.background, dp(4).toFloat())
+        pill.background = d
+        segPill = d
+        return d
+    }
+
+    private fun paintSeg(pos: Float) {
+        val ev = android.animation.ArgbEvaluator()
+        val d = segPillDrawable()
+        d.pos = pos
+        d.color = ev.evaluate(pos, col(R.color.surface), col(R.color.secret_bg)) as Int
+        segTabs.setTextColor(ev.evaluate(pos, col(R.color.text), col(R.color.sub)) as Int)
+        segSecret.setTextColor(ev.evaluate(pos, col(R.color.sub), col(R.color.secret)) as Int)
+    }
+
+    private fun setSegment(secret: Boolean, animate: Boolean) {
+        val to = if (secret) 1f else 0f
+        val d = segPillDrawable()
+        if (!animate) {
+            if (segAnim?.isRunning == true) return
+            paintSeg(to)
+            return
+        }
+        segAnim?.cancel()
+        segAnim = android.animation.ValueAnimator.ofFloat(d.pos, to).apply {
+            duration = 300
+            interpolator = Motion.enter
+            addUpdateListener { paintSeg(it.animatedValue as Float) }
+            start()
+        }
+    }
+
+    private fun switchTabsSegment(secret: Boolean) {
+        if (showSecretTabs == secret) return
+        showSecretTabs = secret
+        updateSecure()
+        setSegment(secret, true)
+        val dx = dp(32).toFloat() * (if (secret) -1f else 1f)
+        tabsGrid.animate().cancel()
+        tabsTitle.animate().cancel()
+        tabsTitle.animate().alpha(0f).setDuration(120).start()
+        tabsGrid.animate().alpha(0f).translationX(dx).setDuration(130).setInterpolator(Motion.exit).withEndAction {
+            renderTabs()
+            tabsGrid.translationX = -dx
+            tabsGrid.animate().alpha(1f).translationX(0f).setDuration(300).setInterpolator(Motion.enter).start()
+            tabsTitle.animate().alpha(1f).setDuration(300).start()
+        }.start()
+    }
+
     private fun renderTabs(animate: Boolean = false) {
         val list = tabs.filter { it.secret == showSecretTabs }
-        tabsTitle.text = (if (showSecretTabs) "Secret tabs" else "Tabs") + " (${list.size})"
-        segTabs.background = if (!showSecretTabs) rounded(col(R.color.surface), 20) else null
-        segSecret.background = if (showSecretTabs) rounded(col(R.color.secret_bg), 20) else null
-        segTabs.setTextColor(col(if (!showSecretTabs) R.color.text else R.color.sub))
-        segSecret.setTextColor(col(if (showSecretTabs) R.color.secret else R.color.sub))
+        tabsTitle.text = ("${list.size} — " + if (showSecretTabs) "Secret tabs" else "Tabs")
+        setSegment(showSecretTabs, false)
         tabsGrid.removeAllViews()
         if (list.isEmpty()) {
             tabsGrid.addView(TextView(this).apply {
